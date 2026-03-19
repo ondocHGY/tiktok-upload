@@ -1,0 +1,37 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8010:8000"
+    environment:
+      - TT_CLIENT_KEY=${TT_CLIENT_KEY}
+      - TT_CLIENT_SECRET=${TT_CLIENT_SECRET}
+      - TT_REDIRECT_URI=${TT_REDIRECT_URI:-https://meerkat-peaceful-polliwog.ngrok-free.app/auth/callback}
+      - DB_HOST=host.docker.internal
+      - DB_PORT=3306
+      - DB_USER=test
+      - DB_PASSWORD=test
+      - DB_NAME=tiktok_upload
+      - SECRET_KEY=${SECRET_KEY:-changeme}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-changeme}
+      - VIDEO_DIR=/app/videos
+      - FRONTEND_URL=https://meerkat-peaceful-polliwog.ngrok-free.app
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./videos:/app/videos
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3010:3000"
+    depends_on:
+      - backend
+

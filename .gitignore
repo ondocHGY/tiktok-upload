@@ -1,0 +1,28 @@
+# Environment
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+
+# Node
+frontend/node_modules/
+frontend/build/
+
+# Videos
+videos/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Docker
+mysql_data/
+
+# OS
+.DS_Store
+Thumbs.db
