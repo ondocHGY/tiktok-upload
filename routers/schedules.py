@@ -16,7 +16,7 @@ from services.tiktok_upload import execute_upload
 router = APIRouter(prefix="/api/schedules", tags=["schedules"])
 
 
-@router.get("/", response_model=list[ScheduleResponse])
+@router.get("", response_model=list[ScheduleResponse])
 async def list_schedules(
     status: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
@@ -29,7 +29,7 @@ async def list_schedules(
     return result.scalars().all()
 
 
-@router.post("/", response_model=ScheduleResponse, status_code=201)
+@router.post("", response_model=ScheduleResponse, status_code=201)
 async def create_schedule(
     payload: ScheduleCreate,
     db: AsyncSession = Depends(get_db),

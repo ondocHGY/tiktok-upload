@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Form, Input, Button, Card, message, Typography } from 'antd';
+import { Form, Input, Button, Card, message, Typography, Space } from 'antd';
 import { LockOutlined } from '@ant-design/icons';
 import api from '../api/client';
 
@@ -55,6 +55,12 @@ const Login: React.FC = () => {
             </Button>
           </Form.Item>
         </Form>
+        <div style={{ textAlign: 'center', marginTop: 16 }}>
+          <Space split={<span style={{ color: '#d9d9d9' }}>|</span>}>
+            <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#999', fontSize: 12 }}>Terms of Service</a>
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#999', fontSize: 12 }}>Privacy Policy</a>
+          </Space>
+        </div>
       </Card>
     </div>
   );
