@@ -9,7 +9,7 @@ import Login from './pages/Login';
 import { TermsOfService, PrivacyPolicy } from './pages/Legal';
 
 const isAuthenticated = (): boolean => {
-  return sessionStorage.getItem('admin_authenticated') === 'true';
+  return localStorage.getItem('admin_authenticated') === 'true';
 };
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {

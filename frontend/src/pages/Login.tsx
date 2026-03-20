@@ -14,7 +14,7 @@ const Login: React.FC = () => {
     setLoading(true);
     try {
       await api.post('/auth/admin/login', { password: values.password });
-      sessionStorage.setItem('admin_authenticated', 'true');
+      localStorage.setItem('admin_authenticated', 'true');
       navigate('/');
     } catch {
       message.error('비밀번호가 올바르지 않습니다.');
