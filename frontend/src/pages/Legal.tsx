@@ -3,8 +3,8 @@ import { Typography, Divider, Space } from 'antd';
 
 const { Title, Paragraph, Text, Link } = Typography;
 
-const CONTACT_EMAIL = 'support@example.com';
-const SERVICE_NAME = 'TikTok Upload Scheduler';
+const CONTACT_EMAIL = 'essencielglobal@gmail.com';
+const SERVICE_NAME = 'Upload Scheduler';
 const LAST_UPDATED = 'March 19, 2026';
 
 export const TermsOfService: React.FC = () => {
