@@ -34,7 +34,7 @@ const Login: React.FC = () => {
       <Card style={{ width: 400 }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <Title level={3} style={{ margin: 0, color: '#1677ff' }}>
-            TikTok Upload Scheduler
+            KMHC
           </Title>
           <p style={{ color: '#999', marginTop: 8 }}>관리자 로그인</p>
         </div>

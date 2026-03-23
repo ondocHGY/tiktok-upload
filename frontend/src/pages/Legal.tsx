@@ -4,12 +4,23 @@ import { Typography, Divider, Space } from 'antd';
 const { Title, Paragraph, Text, Link } = Typography;
 
 const CONTACT_EMAIL = 'essencielglobal@gmail.com';
-const SERVICE_NAME = 'Upload Scheduler';
+const SERVICE_NAME = 'KMHC';
 const LAST_UPDATED = 'March 19, 2026';
+
+const LogoHeader: React.FC = () => (
+  <div style={{ textAlign: 'center', marginBottom: 16 }}>
+    <img
+      src="/kmhc_icon.jpg"
+      alt="KMHC"
+      style={{ width: 80, height: 80, borderRadius: 12 }}
+    />
+  </div>
+);
 
 export const TermsOfService: React.FC = () => {
   return (
     <Typography style={{ maxWidth: 800, margin: '0 auto', padding: '24px 16px' }}>
+      <LogoHeader />
       <Title level={2}>Terms of Service</Title>
       <Paragraph type="secondary">Last updated: {LAST_UPDATED}</Paragraph>
       <Divider />
@@ -99,6 +110,7 @@ export const TermsOfService: React.FC = () => {
 export const PrivacyPolicy: React.FC = () => {
   return (
     <Typography style={{ maxWidth: 800, margin: '0 auto', padding: '24px 16px' }}>
+      <LogoHeader />
       <Title level={2}>Privacy Policy</Title>
       <Paragraph type="secondary">Last updated: {LAST_UPDATED}</Paragraph>
       <Divider />
