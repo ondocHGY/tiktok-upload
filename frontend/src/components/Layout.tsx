@@ -4,8 +4,12 @@ import {
   DashboardOutlined,
   ScheduleOutlined,
   UserOutlined,
+  LogoutOutlined,
+  FileTextOutlined,
+  SafetyOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { Button, Space } from 'antd';
 
 const { Sider, Content, Header } = AntLayout;
 
@@ -17,6 +21,11 @@ const AppLayout: React.FC = () => {
     if (location.pathname.startsWith('/accounts')) return 'accounts';
     if (location.pathname.startsWith('/schedules')) return 'schedules';
     return 'dashboard';
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('admin_authenticated');
+    navigate('/login');
   };
 
   const menuItems = [
@@ -37,6 +46,19 @@ const AppLayout: React.FC = () => {
       icon: <UserOutlined />,
       label: '계정 관리',
       onClick: () => navigate('/accounts'),
+    },
+    { type: 'divider' as const },
+    {
+      key: 'terms',
+      icon: <FileTextOutlined />,
+      label: 'Terms of Service',
+      onClick: () => window.open('/terms', '_blank'),
+    },
+    {
+      key: 'privacy',
+      icon: <SafetyOutlined />,
+      label: 'Privacy Policy',
+      onClick: () => window.open('/privacy', '_blank'),
     },
   ];
 
@@ -80,7 +102,15 @@ const AppLayout: React.FC = () => {
             alignItems: 'center',
           }}
         >
-          <h3 style={{ margin: 0, color: '#333' }}>TikTok 영상 업로드 스케줄러</h3>
+          <h3 style={{ margin: 0, color: '#333', flex: 1 }}>TikTok 영상 업로드 스케줄러</h3>
+          <Button
+            type="text"
+            icon={<LogoutOutlined />}
+            onClick={handleLogout}
+            danger
+          >
+            로그아웃
+          </Button>
         </Header>
         <Content
           style={{
