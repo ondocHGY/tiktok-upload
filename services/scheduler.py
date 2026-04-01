@@ -4,10 +4,11 @@ from datetime import datetime
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.date import DateTrigger
+from apscheduler.triggers.interval import IntervalTrigger
 from sqlalchemy import select
 
 from database import async_session
-from models import ScheduledUpload
+from models import ScheduledUpload, TikTokAccount
 from services.tiktok_upload import execute_upload
 
 logger = logging.getLogger(__name__)
@@ -50,6 +51,21 @@ def remove_upload_job(schedule_id: int) -> None:
         logger.debug("Job %s not found; nothing to remove", job_id)
 
 
+async def refresh_all_tokens() -> None:
+    """Refresh access tokens for all connected TikTok accounts."""
+    from services.tiktok_auth import ensure_valid_token
+
+    async with async_session() as db:
+        result = await db.execute(select(TikTokAccount))
+        accounts = result.scalars().all()
+        for account in accounts:
+            try:
+                await ensure_valid_token(account, db)
+                logger.info("Token refreshed for account_id=%s", account.id)
+            except Exception:
+                logger.exception("Failed to refresh token for account_id=%s", account.id)
+
+
 async def setup_scheduler() -> None:
     """
     Initialize the scheduler and reload all pending uploads from the database
@@ -65,6 +81,14 @@ async def setup_scheduler() -> None:
             add_upload_job(upload.id, upload.scheduled_time)
 
         logger.info("Loaded %d pending upload jobs into scheduler", len(pending))
+
+    scheduler.add_job(
+        refresh_all_tokens,
+        trigger=IntervalTrigger(hours=12),
+        id="token_refresh",
+        replace_existing=True,
+    )
+    logger.info("Token refresh job scheduled every 12 hours")
 
     scheduler.start()
     logger.info("Scheduler started")
