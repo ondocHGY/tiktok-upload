@@ -15,7 +15,7 @@ import {
 import { ArrowLeftOutlined, UploadOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import dayjs from 'dayjs';
-import { TikTokAccount, CreateSchedulePayload } from '../types';
+import { TikTokAccount, CreateSchedulePayload, Product } from '../types';
 import {
   getAccounts,
   getVideoFiles,
@@ -23,6 +23,7 @@ import {
   updateSchedule,
   getSchedule,
   uploadVideoFile,
+  getProducts,
 } from '../api/client';
 
 const { Title } = Typography;
@@ -42,6 +43,7 @@ const ScheduleForm: React.FC = () => {
   const [form] = Form.useForm();
   const [accounts, setAccounts] = useState<TikTokAccount[]>([]);
   const [videoFiles, setVideoFiles] = useState<string[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -50,12 +52,14 @@ const ScheduleForm: React.FC = () => {
     const fetchFormData = async () => {
       setLoading(true);
       try {
-        const [accountsData, videosData] = await Promise.all([
+        const [accountsData, videosData, productsData] = await Promise.all([
           getAccounts(),
           getVideoFiles(),
+          getProducts(),
         ]);
         setAccounts(accountsData);
         setVideoFiles(videosData);
+        setProducts(productsData);
 
         if (isEdit && id) {
           const schedule = await getSchedule(Number(id));
@@ -258,8 +262,17 @@ const ScheduleForm: React.FC = () => {
           <Switch />
         </Form.Item>
 
-        <Form.Item name="product_id" label="상품 ID (선택사항)">
-          <Input placeholder="TikTok Shop 상품 ID" />
+        <Form.Item name="product_id" label="연결 상품 (선택사항)">
+          <Select
+            placeholder="연결할 상품을 선택하세요"
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            options={products.map((p) => ({
+              value: p.item_id,
+              label: `${p.name} (${p.item_id})`,
+            }))}
+          />
         </Form.Item>
 
         <Form.Item>

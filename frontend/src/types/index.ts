@@ -24,6 +24,15 @@ export interface ScheduledUpload {
   updated_at: string;
 }
 
+export interface Product {
+  id: number;
+  name: string;
+  item_id: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string | null;
+}
+
 export interface CreateSchedulePayload {
   account_id: number;
   video_filename: string;

@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from database import create_all
 from routers.auth import router as auth_router
+from routers.products import router as products_router
 from routers.schedules import router as schedules_router
 from services.scheduler import scheduler, setup_scheduler
 
@@ -47,6 +48,7 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(schedules_router)
+app.include_router(products_router)
 
 
 @app.get("/")

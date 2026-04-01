@@ -4,6 +4,7 @@ import AppLayout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import ScheduleForm from './pages/ScheduleForm';
 import Accounts from './pages/Accounts';
+import Products from './pages/Products';
 import Callback from './pages/Callback';
 import Login from './pages/Login';
 import { TermsOfService, PrivacyPolicy } from './pages/Legal';
@@ -35,6 +36,7 @@ const App: React.FC = () => {
           <Route path="/schedules/new" element={<ScheduleForm />} />
           <Route path="/schedules/:id/edit" element={<ScheduleForm />} />
           <Route path="/accounts" element={<Accounts />} />
+          <Route path="/products" element={<Products />} />
         </Route>
       </Routes>
     </BrowserRouter>

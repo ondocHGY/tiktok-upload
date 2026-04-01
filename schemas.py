@@ -51,6 +51,32 @@ class ScheduleResponse(BaseModel):
     updated_at: Optional[datetime] = None
 
 
+# ---------- Product schemas ----------
+
+
+class ProductCreate(BaseModel):
+    name: str
+    item_id: str
+    description: Optional[str] = None
+
+
+class ProductUpdate(BaseModel):
+    name: Optional[str] = None
+    item_id: Optional[str] = None
+    description: Optional[str] = None
+
+
+class ProductResponse(BaseModel):
+    model_config = {"from_attributes": True}
+
+    id: int
+    name: str
+    item_id: str
+    description: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+
 # ---------- Account schemas ----------
 
 

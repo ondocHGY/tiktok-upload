@@ -16,6 +16,24 @@ class Base(DeclarativeBase):
     pass
 
 
+class Product(Base):
+    __tablename__ = "products"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    item_id: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True, onupdate=func.now()
+    )
+
+    def __repr__(self) -> str:
+        return f"<Product id={self.id} name={self.name} item_id={self.item_id}>"
+
+
 class TikTokAccount(Base):
     __tablename__ = "tiktok_accounts"
 

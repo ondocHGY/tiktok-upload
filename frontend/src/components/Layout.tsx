@@ -7,6 +7,7 @@ import {
   LogoutOutlined,
   FileTextOutlined,
   SafetyOutlined,
+  ShoppingOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { Button, Space } from 'antd';
@@ -19,6 +20,7 @@ const AppLayout: React.FC = () => {
 
   const getSelectedKey = () => {
     if (location.pathname.startsWith('/accounts')) return 'accounts';
+    if (location.pathname.startsWith('/products')) return 'products';
     if (location.pathname.startsWith('/schedules')) return 'schedules';
     return 'dashboard';
   };
@@ -46,6 +48,12 @@ const AppLayout: React.FC = () => {
       icon: <UserOutlined />,
       label: '계정 관리',
       onClick: () => navigate('/accounts'),
+    },
+    {
+      key: 'products',
+      icon: <ShoppingOutlined />,
+      label: '상품 관리',
+      onClick: () => navigate('/products'),
     },
     { type: 'divider' as const },
     {

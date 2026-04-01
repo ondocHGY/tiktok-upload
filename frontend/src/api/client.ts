@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { ScheduledUpload, TikTokAccount, CreateSchedulePayload } from '../types';
+import { ScheduledUpload, TikTokAccount, CreateSchedulePayload, Product } from '../types';
 
 const api = axios.create({
   baseURL: process.env.REACT_APP_API_URL || '',
@@ -67,6 +67,25 @@ export const loginTikTok = async (): Promise<void> => {
 
 export const sendCallback = async (code: string, state: string): Promise<void> => {
   await api.post('/auth/callback', { code, state });
+};
+
+export const getProducts = async (): Promise<Product[]> => {
+  const response = await api.get('/api/products');
+  return response.data;
+};
+
+export const createProduct = async (data: { name: string; item_id: string; description?: string }): Promise<Product> => {
+  const response = await api.post('/api/products', data);
+  return response.data;
+};
+
+export const updateProduct = async (id: number, data: { name?: string; item_id?: string; description?: string }): Promise<Product> => {
+  const response = await api.put(`/api/products/${id}`, data);
+  return response.data;
+};
+
+export const deleteProduct = async (id: number): Promise<void> => {
+  await api.delete(`/api/products/${id}`);
 };
 
 export default api;

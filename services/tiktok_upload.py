@@ -38,6 +38,7 @@ async def init_video_upload(
     disable_comment: bool,
     disable_duet: bool,
     disable_stitch: bool,
+    product_id: str | None = None,
 ) -> dict:
     """Initialize a video upload via the TikTok Content Posting API (FILE_UPLOAD)."""
     url = f"{BASE_URL}/v2/post/publish/video/init/"
@@ -46,14 +47,18 @@ async def init_video_upload(
         "Content-Type": "application/json; charset=UTF-8",
     }
     total_chunk_count = -(-video_size // chunk_size)  # ceiling division
+    post_info: dict = {
+        "title": title,
+        "privacy_level": privacy_level,
+        "disable_comment": disable_comment,
+        "disable_duet": disable_duet,
+        "disable_stitch": disable_stitch,
+    }
+    if product_id:
+        post_info["brand_organic_toggle"] = True
+        post_info["product_links"] = [{"item_id": product_id}]
     payload = {
-        "post_info": {
-            "title": title,
-            "privacy_level": privacy_level,
-            "disable_comment": disable_comment,
-            "disable_duet": disable_duet,
-            "disable_stitch": disable_stitch,
-        },
+        "post_info": post_info,
         "source_info": {
             "source": "FILE_UPLOAD",
             "video_size": video_size,
@@ -164,6 +169,7 @@ async def execute_upload(schedule_id: int) -> None:
                 disable_comment=schedule.disable_comment,
                 disable_duet=schedule.disable_duet,
                 disable_stitch=schedule.disable_stitch,
+                product_id=schedule.product_id,
             )
 
             data = init_resp.get("data", {})
@@ -181,7 +187,8 @@ async def execute_upload(schedule_id: int) -> None:
             # Poll publish status (simple retry loop)
             import asyncio
 
-            final_status = "uploading"
+            final_status = "failed"
+            final_error = "Publish status polling timed out after 150 seconds"
             for _ in range(30):
                 await asyncio.sleep(5)
                 status_resp = await check_publish_status(access_token, publish_id)
@@ -189,6 +196,7 @@ async def execute_upload(schedule_id: int) -> None:
                 pub_status = status_data.get("status", "PROCESSING_UPLOAD")
                 if pub_status == "PUBLISH_COMPLETE":
                     final_status = "published"
+                    final_error = None
                     break
                 elif pub_status in ("FAILED", "PUBLISH_FAILED"):
                     fail_reason = status_data.get("fail_reason", "unknown")
@@ -196,6 +204,9 @@ async def execute_upload(schedule_id: int) -> None:
                         f"TikTok publish failed: {fail_reason}"
                     )
                 # else still processing, keep polling
+
+            if final_status == "failed":
+                raise RuntimeError(final_error)
 
             schedule.publish_id = publish_id
             schedule.status = final_status
