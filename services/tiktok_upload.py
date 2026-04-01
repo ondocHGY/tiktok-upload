@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 BASE_URL = "https://open.tiktokapis.com"
 DEFAULT_CHUNK_SIZE = 10 * 1024 * 1024  # 10 MB
+MAX_SINGLE_CHUNK_SIZE = 64 * 1024 * 1024  # 64 MB — TikTok max chunk size
 
 
 async def query_creator_info(access_token: str) -> dict:
@@ -157,7 +158,8 @@ async def execute_upload(schedule_id: int) -> None:
                 raise FileNotFoundError(f"Video file not found: {video_path}")
 
             video_size = os.path.getsize(video_path)
-            chunk_size = min(DEFAULT_CHUNK_SIZE, video_size)
+            # 64MB 이하는 단일 청크로 전송 (마지막 청크 5MB 미달 방지)
+            chunk_size = video_size if video_size <= MAX_SINGLE_CHUNK_SIZE else DEFAULT_CHUNK_SIZE
 
             # Init upload
             init_resp = await init_video_upload(
