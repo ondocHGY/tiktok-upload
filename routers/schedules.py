@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import os
 from typing import Optional
 
@@ -12,6 +13,14 @@ from models import ScheduledUpload
 from schemas import ScheduleCreate, ScheduleResponse, ScheduleUpdate
 from services.scheduler import add_upload_job, remove_upload_job
 from services.tiktok_upload import execute_upload
+
+
+def _compute_file_hash(filepath: str) -> str:
+    h = hashlib.sha256()
+    with open(filepath, "rb") as f:
+        for chunk in iter(lambda: f.read(8 * 1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
 router = APIRouter(prefix="/api/schedules", tags=["schedules"])
 
@@ -33,11 +42,45 @@ async def list_schedules(
 async def create_schedule(
     payload: ScheduleCreate,
     db: AsyncSession = Depends(get_db),
+    force: bool = False,
 ):
     """Create a new scheduled upload and register it with the scheduler."""
+    safe_filename = os.path.basename(payload.video_filename)
+    video_path = os.path.join(settings.VIDEO_DIR, safe_filename)
+    if not os.path.isfile(video_path):
+        raise HTTPException(status_code=400, detail="영상 파일을 찾을 수 없습니다.")
+
+    video_hash = await asyncio.to_thread(_compute_file_hash, video_path)
+
+    if not force:
+        dup_result = await db.execute(
+            select(ScheduledUpload).where(
+                ScheduledUpload.account_id == payload.account_id,
+                ScheduledUpload.video_hash == video_hash,
+                ScheduledUpload.status != "failed",
+            )
+        )
+        dup = dup_result.scalar_one_or_none()
+        if dup:
+            status_label = {
+                "pending": "대기 중",
+                "uploading": "업로드 중",
+                "published": "업로드 완료",
+            }.get(dup.status, dup.status)
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "DUPLICATE_VIDEO",
+                    "message": f"동일한 영상이 이미 {status_label} 상태로 등록되어 있습니다. (파일명: {dup.video_filename})",
+                    "existing_id": dup.id,
+                    "existing_status": dup.status,
+                    "existing_scheduled_time": dup.scheduled_time.isoformat(),
+                },
+            )
+
     schedule = ScheduledUpload(
         account_id=payload.account_id,
-        video_filename=payload.video_filename,
+        video_filename=safe_filename,
         title=payload.title,
         privacy_level=payload.privacy_level,
         scheduled_time=payload.scheduled_time,
@@ -45,6 +88,7 @@ async def create_schedule(
         disable_comment=payload.disable_comment,
         disable_duet=payload.disable_duet,
         disable_stitch=payload.disable_stitch,
+        video_hash=video_hash,
         status="pending",
     )
     db.add(schedule)

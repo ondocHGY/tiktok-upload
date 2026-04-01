@@ -8,6 +8,7 @@ import {
   Button,
   Upload,
   message,
+  Modal,
   Typography,
   Space,
   Spin,
@@ -85,7 +86,7 @@ const ScheduleForm: React.FC = () => {
     fetchFormData();
   }, [id, isEdit, form]);
 
-  const handleSubmit = async (values: any) => {
+  const handleSubmit = async (values: any, force = false) => {
     setSubmitting(true);
     try {
       const payload: CreateSchedulePayload = {
@@ -104,13 +105,24 @@ const ScheduleForm: React.FC = () => {
         await updateSchedule(Number(id), payload);
         message.success('예약이 수정되었습니다.');
       } else {
-        await createSchedule(payload);
+        await createSchedule(payload, force);
         message.success('예약이 생성되었습니다.');
       }
       navigate('/');
     } catch (error: any) {
-      const errorMsg = error?.response?.data?.detail || '저장에 실패했습니다.';
-      message.error(typeof errorMsg === 'string' ? errorMsg : '저장에 실패했습니다.');
+      const detail = error?.response?.data?.detail;
+      if (error?.response?.status === 409 && detail?.code === 'DUPLICATE_VIDEO') {
+        setSubmitting(false);
+        Modal.confirm({
+          title: '중복 영상 감지',
+          content: detail.message,
+          okText: '그래도 등록',
+          cancelText: '취소',
+          onOk: () => handleSubmit(values, true),
+        });
+        return;
+      }
+      message.error(typeof detail === 'string' ? detail : '저장에 실패했습니다.');
     } finally {
       setSubmitting(false);
     }

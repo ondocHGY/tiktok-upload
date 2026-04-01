@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
 from models import TikTokAccount
-from schemas import AccountResponse
+from schemas import AccountResponse, AccountUpdate
 from services.tiktok_auth import (
     ensure_valid_token,
     exchange_code,
@@ -116,6 +116,27 @@ async def list_accounts(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(TikTokAccount))
     accounts = result.scalars().all()
     return accounts
+
+
+@router.patch("/accounts/{account_id}", response_model=AccountResponse)
+async def update_account(
+    account_id: int,
+    payload: AccountUpdate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Update the display name of a connected TikTok account."""
+    result = await db.execute(
+        select(TikTokAccount).where(TikTokAccount.id == account_id)
+    )
+    account = result.scalar_one_or_none()
+    if account is None:
+        raise HTTPException(status_code=404, detail="Account not found")
+
+    account.display_name = payload.display_name
+    db.add(account)
+    await db.flush()
+    await db.refresh(account)
+    return account
 
 
 @router.delete("/accounts/{account_id}")

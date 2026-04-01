@@ -80,6 +80,10 @@ class ProductResponse(BaseModel):
 # ---------- Account schemas ----------
 
 
+class AccountUpdate(BaseModel):
+    display_name: str
+
+
 class AccountResponse(BaseModel):
     model_config = {"from_attributes": True}
 

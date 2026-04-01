@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Button, Space, Popconfirm, message, Typography, Empty, Spin, Row, Col, Descriptions } from 'antd';
-import { PlusOutlined, DeleteOutlined, UserOutlined } from '@ant-design/icons';
+import { Card, Button, Space, Popconfirm, message, Typography, Empty, Spin, Row, Col, Descriptions, Modal, Form, Input } from 'antd';
+import { PlusOutlined, DeleteOutlined, UserOutlined, EditOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { TikTokAccount } from '../types';
-import { getAccounts, deleteAccount, loginTikTok } from '../api/client';
+import { getAccounts, deleteAccount, loginTikTok, updateAccount } from '../api/client';
 
 const { Title } = Typography;
 
 const Accounts: React.FC = () => {
   const [accounts, setAccounts] = useState<TikTokAccount[]>([]);
   const [loading, setLoading] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<TikTokAccount | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [form] = Form.useForm();
 
   const fetchAccounts = async () => {
     setLoading(true);
@@ -26,6 +29,26 @@ const Accounts: React.FC = () => {
   useEffect(() => {
     fetchAccounts();
   }, []);
+
+  const openEdit = (account: TikTokAccount) => {
+    setEditingAccount(account);
+    form.setFieldsValue({ display_name: account.display_name });
+  };
+
+  const handleRename = async (values: { display_name: string }) => {
+    if (!editingAccount) return;
+    setSubmitting(true);
+    try {
+      const updated = await updateAccount(editingAccount.id, values);
+      setAccounts((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+      message.success('계정 이름이 변경되었습니다.');
+      setEditingAccount(null);
+    } catch {
+      message.error('이름 변경에 실패했습니다.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleDelete = async (id: number) => {
     try {
@@ -76,6 +99,9 @@ const Accounts: React.FC = () => {
               <Card
                 hoverable
                 actions={[
+                  <Button key="edit" type="text" icon={<EditOutlined />} onClick={() => openEdit(account)}>
+                    이름 변경
+                  </Button>,
                   <Popconfirm
                     key="delete"
                     title="계정 삭제"
@@ -138,6 +164,29 @@ const Accounts: React.FC = () => {
           ))}
         </Row>
       )}
+      <Modal
+        title="계정 이름 변경"
+        open={!!editingAccount}
+        onCancel={() => setEditingAccount(null)}
+        footer={null}
+        destroyOnClose
+      >
+        <Form form={form} layout="vertical" onFinish={handleRename} style={{ marginTop: 16 }}>
+          <Form.Item
+            name="display_name"
+            label="계정 이름"
+            rules={[{ required: true, message: '이름을 입력해주세요.' }]}
+          >
+            <Input placeholder="표시할 계정 이름" />
+          </Form.Item>
+          <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
+            <Space>
+              <Button onClick={() => setEditingAccount(null)}>취소</Button>
+              <Button type="primary" htmlType="submit" loading={submitting}>저장</Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };

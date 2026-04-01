@@ -14,8 +14,8 @@ export const getSchedules = async (status?: string): Promise<ScheduledUpload[]> 
   return response.data;
 };
 
-export const createSchedule = async (data: CreateSchedulePayload): Promise<ScheduledUpload> => {
-  const response = await api.post('/api/schedules', data);
+export const createSchedule = async (data: CreateSchedulePayload, force = false): Promise<ScheduledUpload> => {
+  const response = await api.post('/api/schedules', data, { params: force ? { force: true } : {} });
   return response.data;
 };
 
@@ -58,6 +58,11 @@ export const getAccounts = async (): Promise<TikTokAccount[]> => {
 
 export const deleteAccount = async (id: number): Promise<void> => {
   await api.delete(`/auth/accounts/${id}`);
+};
+
+export const updateAccount = async (id: number, data: { display_name: string }): Promise<TikTokAccount> => {
+  const response = await api.patch(`/auth/accounts/${id}`, data);
+  return response.data;
 };
 
 export const loginTikTok = async (): Promise<void> => {
