@@ -82,6 +82,19 @@ async def setup_scheduler() -> None:
 
         logger.info("Loaded %d pending upload jobs into scheduler", len(pending))
 
+        # uploading 상태로 고착된 레코드 복구 (서버 재시작 시 처리 중이던 항목)
+        stuck_result = await db.execute(
+            select(ScheduledUpload).where(ScheduledUpload.status == "uploading")
+        )
+        stuck = stuck_result.scalars().all()
+        for upload in stuck:
+            upload.status = "failed"
+            upload.error_message = "서버 재시작으로 인해 업로드가 중단되었습니다."
+            db.add(upload)
+        if stuck:
+            await db.commit()
+            logger.warning("Reset %d stuck 'uploading' records to 'failed'", len(stuck))
+
     scheduler.add_job(
         refresh_all_tokens,
         trigger=IntervalTrigger(hours=12),

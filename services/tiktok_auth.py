@@ -13,7 +13,7 @@ from models import TikTokAccount
 TIKTOK_AUTH_URL = "https://www.tiktok.com/v2/auth/authorize/"
 TIKTOK_TOKEN_URL = "https://open.tiktokapis.com/v2/oauth/token/"
 
-SCOPES = "user.info.basic,video.publish,video.upload"
+SCOPES = "user.info.basic,video.publish"
 
 # In-memory store for PKCE code_verifier (keyed by state)
 _pkce_store: dict[str, str] = {}

@@ -56,7 +56,8 @@ async def init_video_upload(
         "disable_stitch": disable_stitch,
     }
     if product_id:
-        post_info["brand_organic_toggle"] = True
+        post_info["brand_content_toggle"] = True
+        post_info["privacy_level"] = "PUBLIC_TO_EVERYONE"
         post_info["product_links"] = [{"item_id": product_id}]
     payload = {
         "post_info": post_info,
@@ -92,6 +93,7 @@ async def upload_video_chunks(
                 headers = {
                     "Content-Range": f"bytes {offset}-{end}/{file_size}",
                     "Content-Type": "video/mp4",
+                    "Content-Length": str(len(chunk)),
                 }
                 resp = await client.put(upload_url, content=chunk, headers=headers)
                 resp.raise_for_status()
@@ -151,6 +153,23 @@ async def execute_upload(schedule_id: int) -> None:
 
             # Ensure valid token
             access_token = await ensure_valid_token(account, db)
+
+            # Query creator info (required by TikTok policy before posting)
+            creator_resp = await query_creator_info(access_token)
+            creator_data = creator_resp.get("data", {})
+            privacy_level_options: list = creator_data.get("privacy_level_options", [])
+            logger.info("creator_info privacy_level_options: %s", privacy_level_options)
+
+            if privacy_level_options and schedule.privacy_level not in privacy_level_options:
+                # Fall back to the first available option rather than hard-failing
+                fallback = privacy_level_options[0]
+                logger.warning(
+                    "privacy_level '%s' not in creator options %s — falling back to '%s'",
+                    schedule.privacy_level,
+                    privacy_level_options,
+                    fallback,
+                )
+                schedule.privacy_level = fallback
 
             # Resolve video path
             video_path = os.path.join(settings.VIDEO_DIR, schedule.video_filename)

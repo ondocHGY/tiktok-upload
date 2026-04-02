@@ -74,6 +74,11 @@ export const sendCallback = async (code: string, state: string): Promise<void> =
   await api.post('/auth/callback', { code, state });
 };
 
+export const getCreatorInfo = async (accountId: number): Promise<any> => {
+  const response = await api.get(`/auth/accounts/${accountId}/creator-info`);
+  return response.data;
+};
+
 export const getProducts = async (): Promise<Product[]> => {
   const response = await api.get('/api/products');
   return response.data;

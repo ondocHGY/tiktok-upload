@@ -110,6 +110,21 @@ async def refresh_token(account_id: int, db: AsyncSession = Depends(get_db)):
     return {"access_token": new_token, "message": "Token refreshed"}
 
 
+@router.get("/accounts/{account_id}/creator-info")
+async def get_creator_info(account_id: int, db: AsyncSession = Depends(get_db)):
+    """Proxy creator_info query for a connected account."""
+    result = await db.execute(
+        select(TikTokAccount).where(TikTokAccount.id == account_id)
+    )
+    account = result.scalar_one_or_none()
+    if account is None:
+        raise HTTPException(status_code=404, detail="Account not found")
+    access_token = await ensure_valid_token(account, db)
+    from services.tiktok_upload import query_creator_info
+    data = await query_creator_info(access_token)
+    return data
+
+
 @router.get("/accounts", response_model=list[AccountResponse])
 async def list_accounts(db: AsyncSession = Depends(get_db)):
     """List all connected TikTok accounts."""

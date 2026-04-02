@@ -12,8 +12,11 @@ import {
   Typography,
   Space,
   Spin,
+  Alert,
+  Checkbox,
+  Divider,
 } from 'antd';
-import { ArrowLeftOutlined, UploadOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, UploadOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { TikTokAccount, CreateSchedulePayload, Product } from '../types';
@@ -25,17 +28,27 @@ import {
   getSchedule,
   uploadVideoFile,
   getProducts,
+  getCreatorInfo,
 } from '../api/client';
 
-const { Title } = Typography;
+const { Title, Text, Link } = Typography;
 const { TextArea } = Input;
 
-const privacyOptions = [
+const ALL_PRIVACY_OPTIONS = [
   { value: 'PUBLIC_TO_EVERYONE', label: '전체 공개' },
   { value: 'MUTUAL_FOLLOW_FRIENDS', label: '서로 팔로우 친구만' },
   { value: 'FOLLOWER_OF_CREATOR', label: '팔로워만' },
   { value: 'SELF_ONLY', label: '나만 보기' },
 ];
+
+interface CreatorInfo {
+  creator_nickname: string;
+  privacy_level_options: string[];
+  comment_disabled: boolean;
+  duet_disabled: boolean;
+  stitch_disabled: boolean;
+  max_video_post_duration_sec: number;
+}
 
 const ScheduleForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -48,6 +61,10 @@ const ScheduleForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [creatorInfo, setCreatorInfo] = useState<CreatorInfo | null>(null);
+  const [creatorLoading, setCreatorLoading] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [musicConsent, setMusicConsent] = useState(false);
 
   useEffect(() => {
     const fetchFormData = async () => {
@@ -75,6 +92,8 @@ const ScheduleForm: React.FC = () => {
             disable_stitch: schedule.disable_stitch,
             product_id: schedule.product_id || '',
           });
+          setSelectedProductId(schedule.product_id || null);
+          await fetchCreatorInfo(schedule.account_id);
         }
       } catch (error) {
         message.error('데이터를 불러오는데 실패했습니다.');
@@ -86,14 +105,54 @@ const ScheduleForm: React.FC = () => {
     fetchFormData();
   }, [id, isEdit, form]);
 
+  const fetchCreatorInfo = async (accountId: number) => {
+    setCreatorLoading(true);
+    setCreatorInfo(null);
+    try {
+      const resp = await getCreatorInfo(accountId);
+      const data: CreatorInfo = resp?.data ?? {};
+      setCreatorInfo(data);
+
+      // creator_info 기반으로 상호작용 옵션 강제 적용
+      if (data.comment_disabled) form.setFieldValue('disable_comment', true);
+      if (data.duet_disabled) form.setFieldValue('disable_duet', true);
+      if (data.stitch_disabled) form.setFieldValue('disable_stitch', true);
+
+      // privacy_level이 허용 목록에 없으면 초기화
+      const current = form.getFieldValue('privacy_level');
+      if (current && data.privacy_level_options?.length && !data.privacy_level_options.includes(current)) {
+        form.setFieldValue('privacy_level', undefined);
+      }
+    } catch {
+      message.warning('크리에이터 정보를 불러오지 못했습니다. 계속 진행할 수 있지만 일부 옵션이 제한될 수 있습니다.');
+    } finally {
+      setCreatorLoading(false);
+    }
+  };
+
+  const handleAccountChange = (accountId: number) => {
+    fetchCreatorInfo(accountId);
+    form.setFieldValue('privacy_level', undefined);
+  };
+
+  const privacyOptions = creatorInfo?.privacy_level_options?.length
+    ? ALL_PRIVACY_OPTIONS.filter((o) => creatorInfo.privacy_level_options.includes(o.value))
+    : ALL_PRIVACY_OPTIONS;
+
+  const isBrandedContent = Boolean(selectedProductId);
+
   const handleSubmit = async (values: any, force = false) => {
+    if (!musicConsent) {
+      message.error('음악 사용 정책에 동의해주세요.');
+      return;
+    }
     setSubmitting(true);
     try {
       const payload: CreateSchedulePayload = {
         account_id: values.account_id,
         video_filename: values.video_filename,
         title: values.title,
-        privacy_level: values.privacy_level,
+        privacy_level: isBrandedContent ? 'PUBLIC_TO_EVERYONE' : values.privacy_level,
         disable_comment: values.disable_comment || false,
         disable_duet: values.disable_duet || false,
         disable_stitch: values.disable_stitch || false,
@@ -151,7 +210,6 @@ const ScheduleForm: React.FC = () => {
         layout="vertical"
         onFinish={handleSubmit}
         initialValues={{
-          privacy_level: 'PUBLIC_TO_EVERYONE',
           disable_comment: false,
           disable_duet: false,
           disable_stitch: false,
@@ -162,7 +220,7 @@ const ScheduleForm: React.FC = () => {
           label="계정 선택"
           rules={[{ required: true, message: '계정을 선택해주세요.' }]}
         >
-          <Select placeholder="TikTok 계정을 선택하세요">
+          <Select placeholder="TikTok 계정을 선택하세요" onChange={handleAccountChange}>
             {accounts.map((account) => (
               <Select.Option key={account.id} value={account.id}>
                 {account.display_name} ({account.open_id})
@@ -170,6 +228,31 @@ const ScheduleForm: React.FC = () => {
             ))}
           </Select>
         </Form.Item>
+
+        {/* Creator Info 표시 */}
+        {creatorLoading && (
+          <div style={{ marginBottom: 16 }}>
+            <Spin size="small" /> <Text type="secondary"> 크리에이터 정보 확인 중...</Text>
+          </div>
+        )}
+        {creatorInfo && !creatorLoading && (
+          <Alert
+            type="info"
+            showIcon
+            icon={<InfoCircleOutlined />}
+            style={{ marginBottom: 16 }}
+            message={
+              <span>
+                <Text strong>{creatorInfo.creator_nickname}</Text> 계정으로 게시됩니다.
+                {creatorInfo.max_video_post_duration_sec && (
+                  <Text type="secondary">
+                    {' '}(최대 영상 길이: {Math.floor(creatorInfo.max_video_post_duration_sec / 60)}분)
+                  </Text>
+                )}
+              </span>
+            }
+          />
+        )}
 
         <Form.Item
           name="video_filename"
@@ -242,44 +325,16 @@ const ScheduleForm: React.FC = () => {
           />
         </Form.Item>
 
-        <Form.Item
-          name="privacy_level"
-          label="공개 설정"
-          rules={[{ required: true, message: '공개 설정을 선택해주세요.' }]}
-        >
-          <Select options={privacyOptions} />
-        </Form.Item>
-
-        <Form.Item
-          name="disable_comment"
-          label="댓글 비활성화"
-          valuePropName="checked"
-        >
-          <Switch />
-        </Form.Item>
-
-        <Form.Item
-          name="disable_duet"
-          label="듀엣 비활성화"
-          valuePropName="checked"
-        >
-          <Switch />
-        </Form.Item>
-
-        <Form.Item
-          name="disable_stitch"
-          label="스티치 비활성화"
-          valuePropName="checked"
-        >
-          <Switch />
-        </Form.Item>
-
         <Form.Item name="product_id" label="연결 상품 (선택사항)">
           <Select
             placeholder="연결할 상품을 선택하세요"
             allowClear
             showSearch
             optionFilterProp="label"
+            onChange={(val) => {
+              setSelectedProductId(val || null);
+              if (val) form.setFieldValue('privacy_level', 'PUBLIC_TO_EVERYONE');
+            }}
             options={products.map((p) => ({
               value: p.item_id,
               label: `${p.name} (${p.item_id})`,
@@ -287,9 +342,119 @@ const ScheduleForm: React.FC = () => {
           />
         </Form.Item>
 
+        {/* Branded Content 고지 */}
+        {isBrandedContent && (
+          <Alert
+            type="warning"
+            showIcon
+            style={{ marginBottom: 16 }}
+            message="브랜디드 콘텐츠 (Branded Content)"
+            description={
+              <span>
+                상품이 연결된 영상은 TikTok의{' '}
+                <Link href="https://www.tiktok.com/legal/page/global/bc-policy/en" target="_blank" rel="noreferrer">
+                  브랜디드 콘텐츠 정책
+                </Link>
+                에 따라 <Text strong>전체 공개(Public)</Text>로만 게시됩니다.
+                이 영상에는 유료 파트너십 라벨이 표시됩니다.
+              </span>
+            }
+          />
+        )}
+
+        <Form.Item
+          name="privacy_level"
+          label="공개 설정"
+          rules={[{ required: true, message: '공개 설정을 선택해주세요.' }]}
+        >
+          <Select
+            placeholder="공개 범위를 선택해주세요"
+            options={privacyOptions}
+            disabled={isBrandedContent}
+          />
+        </Form.Item>
+        {isBrandedContent && (
+          <Text type="secondary" style={{ display: 'block', marginTop: -12, marginBottom: 16, fontSize: 12 }}>
+            브랜디드 콘텐츠는 전체 공개로 고정됩니다.
+          </Text>
+        )}
+
+        <Form.Item
+          name="disable_comment"
+          label="댓글 비활성화"
+          valuePropName="checked"
+        >
+          <Switch disabled={creatorInfo?.comment_disabled} />
+        </Form.Item>
+        {creatorInfo?.comment_disabled && (
+          <Text type="secondary" style={{ display: 'block', marginTop: -12, marginBottom: 16, fontSize: 12 }}>
+            이 계정은 댓글이 비활성화되어 있습니다.
+          </Text>
+        )}
+
+        <Form.Item
+          name="disable_duet"
+          label="듀엣 비활성화"
+          valuePropName="checked"
+        >
+          <Switch disabled={creatorInfo?.duet_disabled} />
+        </Form.Item>
+        {creatorInfo?.duet_disabled && (
+          <Text type="secondary" style={{ display: 'block', marginTop: -12, marginBottom: 16, fontSize: 12 }}>
+            이 계정은 듀엣이 비활성화되어 있습니다.
+          </Text>
+        )}
+
+        <Form.Item
+          name="disable_stitch"
+          label="스티치 비활성화"
+          valuePropName="checked"
+        >
+          <Switch disabled={creatorInfo?.stitch_disabled} />
+        </Form.Item>
+        {creatorInfo?.stitch_disabled && (
+          <Text type="secondary" style={{ display: 'block', marginTop: -12, marginBottom: 16, fontSize: 12 }}>
+            이 계정은 스티치가 비활성화되어 있습니다.
+          </Text>
+        )}
+
+        <Divider />
+
+        {/* Music Usage Declaration */}
+        <div style={{ marginBottom: 24 }}>
+          <Text strong>음악 사용 고지</Text>
+          <div style={{ marginTop: 8, padding: '12px 16px', background: '#fafafa', borderRadius: 6, border: '1px solid #f0f0f0' }}>
+            <Checkbox
+              checked={musicConsent}
+              onChange={(e) => setMusicConsent(e.target.checked)}
+            >
+              <Text style={{ fontSize: 13 }}>
+                이 영상에 사용된 음악은 TikTok의{' '}
+                <Link href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noreferrer">
+                  음악 사용 정책
+                </Link>
+                을 준수하며, {isBrandedContent && (
+                  <>
+                    <Link href="https://www.tiktok.com/legal/page/global/bc-policy/en" target="_blank" rel="noreferrer">
+                      브랜디드 콘텐츠 정책
+                    </Link>
+                    {' '}및{' '}
+                  </>
+                )}
+                해당 콘텐츠에 대한 모든 권리를 보유하고 있음을 확인합니다.
+              </Text>
+            </Checkbox>
+          </div>
+        </div>
+
         <Form.Item>
           <Space>
-            <Button type="primary" htmlType="submit" loading={submitting}>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={submitting}
+              disabled={!musicConsent}
+            >
               {isEdit ? '수정하기' : '예약하기'}
             </Button>
             <Button onClick={() => navigate('/')}>취소</Button>
