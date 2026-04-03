@@ -147,6 +147,13 @@ const Dashboard: React.FC = () => {
               </Popconfirm>
             </>
           )}
+          {record.status === 'published' && (
+            <Tooltip title="게시 완료. 콘텐츠가 프로필에 표시되기까지 몇 분 소요될 수 있습니다.">
+              <Button type="text" size="small" style={{ color: '#52c41a' }}>
+                처리 중일 수 있음
+              </Button>
+            </Tooltip>
+          )}
           {record.status === 'failed' && record.error_message && (
             <Tooltip title={record.error_message}>
               <Button type="text" size="small" danger>

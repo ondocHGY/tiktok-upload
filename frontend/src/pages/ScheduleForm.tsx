@@ -36,10 +36,10 @@ const { Title, Text, Link } = Typography;
 const { TextArea } = Input;
 
 const ALL_PRIVACY_OPTIONS = [
-  { value: 'PUBLIC_TO_EVERYONE', label: '전체 공개' },
-  { value: 'MUTUAL_FOLLOW_FRIENDS', label: '서로 팔로우 친구만' },
-  { value: 'FOLLOWER_OF_CREATOR', label: '팔로워만' },
-  { value: 'SELF_ONLY', label: '나만 보기' },
+  { value: 'PUBLIC_TO_EVERYONE', label: '전체 공개 (Public to Everyone)' },
+  { value: 'MUTUAL_FOLLOW_FRIENDS', label: '서로 팔로우 친구만 (Mutual Follow Friends)' },
+  { value: 'FOLLOWER_OF_CREATOR', label: '팔로워만 (Followers Only)' },
+  { value: 'SELF_ONLY', label: '나만 보기 (Self Only)' },
 ];
 
 interface CreatorInfo {
@@ -94,9 +94,9 @@ const ScheduleForm: React.FC = () => {
             title: schedule.title,
             scheduled_time: dayjs(schedule.scheduled_time),
             privacy_level: schedule.privacy_level,
-            disable_comment: schedule.disable_comment,
-            disable_duet: schedule.disable_duet,
-            disable_stitch: schedule.disable_stitch,
+            allow_comment: !schedule.disable_comment,
+            allow_duet: !schedule.disable_duet,
+            allow_stitch: !schedule.disable_stitch,
             product_id: schedule.product_id || '',
           });
           const hasDisclosure = schedule.brand_organic_toggle || schedule.brand_content_toggle;
@@ -124,9 +124,9 @@ const ScheduleForm: React.FC = () => {
       const data: CreatorInfo = resp?.data ?? {};
       setCreatorInfo(data);
 
-      if (data.comment_disabled) form.setFieldValue('disable_comment', true);
-      if (data.duet_disabled) form.setFieldValue('disable_duet', true);
-      if (data.stitch_disabled) form.setFieldValue('disable_stitch', true);
+      if (data.comment_disabled) form.setFieldValue('allow_comment', false);
+      if (data.duet_disabled) form.setFieldValue('allow_duet', false);
+      if (data.stitch_disabled) form.setFieldValue('allow_stitch', false);
 
       const current = form.getFieldValue('privacy_level');
       if (current && data.privacy_level_options?.length && !data.privacy_level_options.includes(current)) {
@@ -188,9 +188,9 @@ const ScheduleForm: React.FC = () => {
         video_filename: values.video_filename,
         title: values.title,
         privacy_level: brandedContent ? 'PUBLIC_TO_EVERYONE' : values.privacy_level,
-        disable_comment: values.disable_comment || false,
-        disable_duet: values.disable_duet || false,
-        disable_stitch: values.disable_stitch || false,
+        disable_comment: !values.allow_comment,
+        disable_duet: !values.allow_duet,
+        disable_stitch: !values.allow_stitch,
         brand_organic_toggle: yourBrand,
         brand_content_toggle: brandedContent,
         product_id: brandedContent ? (selectedProductId || null) : null,
@@ -236,29 +236,29 @@ const ScheduleForm: React.FC = () => {
     <div style={{ maxWidth: 640 }}>
       <Space style={{ marginBottom: 24 }}>
         <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/')}>
-          돌아가기
+          돌아가기 (Back)
         </Button>
       </Space>
 
-      <Title level={4}>{isEdit ? '예약 수정' : '새 업로드 예약'}</Title>
+      <Title level={4}>{isEdit ? '예약 수정 (Edit Schedule)' : '새 업로드 예약 (New Upload Schedule)'}</Title>
 
       <Form
         form={form}
         layout="vertical"
         onFinish={handleSubmit}
         initialValues={{
-          disable_comment: false,
-          disable_duet: false,
-          disable_stitch: false,
+          allow_comment: false,
+          allow_duet: false,
+          allow_stitch: false,
         }}
       >
         {/* ── Point 1: 계정 선택 + Creator Info ── */}
         <Form.Item
           name="account_id"
-          label="계정 선택"
+          label="계정 선택 (Account)"
           rules={[{ required: true, message: '계정을 선택해주세요.' }]}
         >
-          <Select placeholder="TikTok 계정을 선택하세요" onChange={handleAccountChange}>
+          <Select placeholder="TikTok 계정을 선택하세요 (Select Account)" onChange={handleAccountChange}>
             {accounts.map((account) => (
               <Select.Option key={account.id} value={account.id}>
                 {account.display_name} ({account.open_id})
@@ -269,7 +269,7 @@ const ScheduleForm: React.FC = () => {
 
         {creatorLoading && (
           <div style={{ marginBottom: 16 }}>
-            <Spin size="small" /> <Text type="secondary"> 크리에이터 정보 확인 중...</Text>
+            <Spin size="small" /> <Text type="secondary"> 크리에이터 정보 확인 중... (Loading creator info...)</Text>
           </div>
         )}
         {creatorInfo && !creatorLoading && (
@@ -280,10 +280,10 @@ const ScheduleForm: React.FC = () => {
             style={{ marginBottom: 16 }}
             message={
               <span>
-                <Text strong>{creatorInfo.creator_nickname}</Text> 계정으로 게시됩니다.
+                <Text strong>{creatorInfo.creator_nickname}</Text> 계정으로 게시됩니다. (Posting as this account)
                 {creatorInfo.max_video_post_duration_sec && (
                   <Text type="secondary">
-                    {' '}(최대 영상 길이: {Math.floor(creatorInfo.max_video_post_duration_sec / 60)}분)
+                    {' '}— 최대 영상 길이 (Max Video Duration): {Math.floor(creatorInfo.max_video_post_duration_sec / 60)}분 (min)
                   </Text>
                 )}
               </span>
@@ -293,7 +293,7 @@ const ScheduleForm: React.FC = () => {
 
         <Form.Item
           name="video_filename"
-          label="영상 파일"
+          label="영상 파일 (Video File)"
           rules={[{ required: true, message: '영상 파일을 선택해주세요.' }]}
         >
           <Select
@@ -321,7 +321,7 @@ const ScheduleForm: React.FC = () => {
                     }}
                   >
                     <Button icon={<UploadOutlined />} loading={uploading} block>
-                      영상 파일 업로드
+                      영상 파일 업로드 (Upload Video File)
                     </Button>
                   </Upload>
                 </div>
@@ -338,7 +338,7 @@ const ScheduleForm: React.FC = () => {
 
         <Form.Item
           name="title"
-          label="제목"
+          label="제목 / 캡션 (Title / Caption)"
           rules={[{ required: true, message: '제목을 입력해주세요.' }]}
         >
           <TextArea
@@ -351,7 +351,7 @@ const ScheduleForm: React.FC = () => {
 
         <Form.Item
           name="scheduled_time"
-          label="예약 시간"
+          label="예약 시간 (Scheduled Time)"
           rules={[{ required: true, message: '예약 시간을 선택해주세요.' }]}
         >
           <DatePicker
@@ -366,11 +366,11 @@ const ScheduleForm: React.FC = () => {
         {/* ── Point 2: Privacy Level ── */}
         <Form.Item
           name="privacy_level"
-          label="공개 설정"
+          label="공개 설정 (Privacy Level)"
           rules={[{ required: true, message: '공개 설정을 선택해주세요.' }]}
         >
           <Select
-            placeholder="공개 범위를 선택해주세요"
+            placeholder="공개 범위를 선택해주세요 (Select Privacy Level)"
             options={privacyOptions}
             disabled={privacyDisabled}
           />
@@ -381,30 +381,31 @@ const ScheduleForm: React.FC = () => {
           </Text>
         )}
 
-        <Form.Item name="disable_comment" label="댓글 비활성화" valuePropName="checked">
+        {/* Point 2c: Interaction settings — all OFF by default, user manually enables */}
+        <Form.Item name="allow_comment" label="댓글 허용 (Allow Comment)" valuePropName="checked">
           <Switch disabled={creatorInfo?.comment_disabled} />
         </Form.Item>
         {creatorInfo?.comment_disabled && (
           <Text type="secondary" style={{ display: 'block', marginTop: -12, marginBottom: 16, fontSize: 12 }}>
-            이 계정은 댓글이 비활성화되어 있습니다.
+            이 계정은 댓글이 허용되지 않습니다. (Comment not available for this account)
           </Text>
         )}
 
-        <Form.Item name="disable_duet" label="듀엣 비활성화" valuePropName="checked">
+        <Form.Item name="allow_duet" label="듀엣 허용 (Allow Duet)" valuePropName="checked">
           <Switch disabled={creatorInfo?.duet_disabled} />
         </Form.Item>
         {creatorInfo?.duet_disabled && (
           <Text type="secondary" style={{ display: 'block', marginTop: -12, marginBottom: 16, fontSize: 12 }}>
-            이 계정은 듀엣이 비활성화되어 있습니다.
+            이 계정은 듀엣이 허용되지 않습니다. (Duet not available for this account)
           </Text>
         )}
 
-        <Form.Item name="disable_stitch" label="스티치 비활성화" valuePropName="checked">
+        <Form.Item name="allow_stitch" label="스티치 허용 (Allow Stitch)" valuePropName="checked">
           <Switch disabled={creatorInfo?.stitch_disabled} />
         </Form.Item>
         {creatorInfo?.stitch_disabled && (
           <Text type="secondary" style={{ display: 'block', marginTop: -12, marginBottom: 16, fontSize: 12 }}>
-            이 계정은 스티치가 비활성화되어 있습니다.
+            이 계정은 스티치가 허용되지 않습니다. (Stitch not available for this account)
           </Text>
         )}
 
@@ -471,9 +472,9 @@ const ScheduleForm: React.FC = () => {
                 )}
 
                 {brandedContent && (
-                  <Form.Item name="product_id" label="연결 상품 (선택사항)" style={{ marginBottom: 0 }}>
+                  <Form.Item name="product_id" label="연결 상품 (Linked Product, Optional)" style={{ marginBottom: 0 }}>
                     <Select
-                      placeholder="연결할 TikTok Shop 상품을 선택하세요"
+                      placeholder="연결할 TikTok Shop 상품을 선택하세요 (Select linked product)"
                       allowClear
                       showSearch
                       optionFilterProp="label"
@@ -492,41 +493,51 @@ const ScheduleForm: React.FC = () => {
 
         <Divider />
 
-        {/* ── Point 4: Music Usage Confirmation ── */}
+        {/* ── Point 4: Music Usage Confirmation — declaration must be clickable ── */}
         <div style={{ marginBottom: 24 }}>
           <Text strong>음악 사용 확인 (Music Usage Confirmation)</Text>
           <div style={{ marginTop: 8, padding: '12px 16px', background: '#fafafa', borderRadius: 6, border: '1px solid #f0f0f0' }}>
+            <div style={{ marginBottom: 10 }}>
+              <Link
+                href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en"
+                target="_blank"
+                rel="noreferrer"
+                style={{ fontSize: 13 }}
+              >
+                TikTok 음악 사용 정책 확인하기 (View TikTok Music Usage Policy) →
+              </Link>
+              {brandedContent && (
+                <>
+                  {'  '}
+                  <Link
+                    href="https://www.tiktok.com/legal/page/global/bc-policy/en"
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ fontSize: 13 }}
+                  >
+                    브랜디드 콘텐츠 정책 확인하기 (View Branded Content Policy) →
+                  </Link>
+                </>
+              )}
+            </div>
             <Checkbox
               checked={musicConsent}
               onChange={(e) => setMusicConsent(e.target.checked)}
             >
               <Text style={{ fontSize: 13 }}>
-                이 영상에 사용된 음악은 TikTok의{' '}
-                <Link href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noreferrer">
-                  음악 사용 정책
-                </Link>
-                을 준수하며, 해당 콘텐츠에 대한 모든 권리를 보유하고 있음을 확인합니다.
-                {brandedContent && (
-                  <>
-                    {' '}또한{' '}
-                    <Link href="https://www.tiktok.com/legal/page/global/bc-policy/en" target="_blank" rel="noreferrer">
-                      브랜디드 콘텐츠 정책
-                    </Link>
-                    에도 동의합니다.
-                  </>
-                )}
+                위 정책을 확인하였으며, 이 영상에 사용된 음악에 대한 모든 권리를 보유하고 있음을 확인합니다.
               </Text>
             </Checkbox>
           </div>
         </div>
 
-        {/* ── Point 5: Direct Post 고지 ── */}
+        {/* ── Point 5: Direct Post 고지 + 처리 시간 안내 (Point 5d) ── */}
         <Alert
           type="info"
           showIcon
           style={{ marginBottom: 24 }}
           message="직접 게시 안내 (Direct Post)"
-          description="예약 시간이 되면 이 영상은 별도 검토 없이 TikTok에 즉시 게시됩니다. 예약 전에 영상 내용, 공개 설정, 콘텐츠 공개 정보를 다시 한번 확인해주세요."
+          description="예약 시간이 되면 이 영상은 별도 검토 없이 TikTok에 즉시 게시됩니다. 게시 후 콘텐츠가 프로필에 표시되기까지 몇 분 정도 소요될 수 있습니다. 예약 전에 영상 내용, 공개 설정, 콘텐츠 공개 정보를 다시 한번 확인해주세요."
         />
 
         <Form.Item>
@@ -537,9 +548,9 @@ const ScheduleForm: React.FC = () => {
               loading={submitting}
               disabled={!musicConsent || !disclosureValid}
             >
-              {isEdit ? '수정하기' : '예약하기'}
+              {isEdit ? '수정하기 (Save)' : '예약하기 (Schedule)'}
             </Button>
-            <Button onClick={() => navigate('/')}>취소</Button>
+            <Button onClick={() => navigate('/')}>취소 (Cancel)</Button>
           </Space>
         </Form.Item>
       </Form>
