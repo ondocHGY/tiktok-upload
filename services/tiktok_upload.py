@@ -186,19 +186,43 @@ async def execute_upload(schedule_id: int) -> None:
             chunk_size = video_size if video_size <= MAX_SINGLE_CHUNK_SIZE else DEFAULT_CHUNK_SIZE
 
             # Init upload
-            init_resp = await init_video_upload(
-                access_token=access_token,
-                video_size=video_size,
-                chunk_size=chunk_size,
-                title=schedule.title,
-                privacy_level=schedule.privacy_level,
-                disable_comment=schedule.disable_comment,
-                disable_duet=schedule.disable_duet,
-                disable_stitch=schedule.disable_stitch,
-                brand_organic_toggle=schedule.brand_organic_toggle,
-                brand_content_toggle=schedule.brand_content_toggle,
-                product_id=schedule.product_id,
-            )
+            try:
+                init_resp = await init_video_upload(
+                    access_token=access_token,
+                    video_size=video_size,
+                    chunk_size=chunk_size,
+                    title=schedule.title,
+                    privacy_level=schedule.privacy_level,
+                    disable_comment=schedule.disable_comment,
+                    disable_duet=schedule.disable_duet,
+                    disable_stitch=schedule.disable_stitch,
+                    brand_organic_toggle=schedule.brand_organic_toggle,
+                    brand_content_toggle=schedule.brand_content_toggle,
+                    product_id=schedule.product_id,
+                )
+            except httpx.HTTPStatusError as brand_err:
+                if brand_err.response.status_code == 403 and (
+                    schedule.brand_organic_toggle or schedule.brand_content_toggle
+                ):
+                    logger.warning(
+                        "403 with brand toggles for schedule %s — retrying without brand toggles",
+                        schedule_id,
+                    )
+                    init_resp = await init_video_upload(
+                        access_token=access_token,
+                        video_size=video_size,
+                        chunk_size=chunk_size,
+                        title=schedule.title,
+                        privacy_level=schedule.privacy_level,
+                        disable_comment=schedule.disable_comment,
+                        disable_duet=schedule.disable_duet,
+                        disable_stitch=schedule.disable_stitch,
+                        brand_organic_toggle=False,
+                        brand_content_toggle=False,
+                        product_id=None,
+                    )
+                else:
+                    raise
 
             data = init_resp.get("data", {})
             publish_id = data.get("publish_id", "")

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Form,
   Input,
@@ -72,6 +72,7 @@ const ScheduleForm: React.FC = () => {
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
 
   const [musicConsent, setMusicConsent] = useState(false);
+  const creatorInfoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const fetchFormData = async () => {
@@ -140,8 +141,9 @@ const ScheduleForm: React.FC = () => {
   };
 
   const handleAccountChange = (accountId: number) => {
-    fetchCreatorInfo(accountId);
     form.setFieldValue('privacy_level', undefined);
+    if (creatorInfoTimer.current) clearTimeout(creatorInfoTimer.current);
+    creatorInfoTimer.current = setTimeout(() => fetchCreatorInfo(accountId), 500);
   };
 
   const privacyOptions = creatorInfo?.privacy_level_options?.length
@@ -165,6 +167,7 @@ const ScheduleForm: React.FC = () => {
     } else {
       setSelectedProductId(null);
       form.setFieldValue('product_id', undefined);
+      form.setFieldValue('privacy_level', undefined);
     }
   };
 
