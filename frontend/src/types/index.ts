@@ -16,6 +16,8 @@ export interface ScheduledUpload {
   disable_duet: boolean;
   disable_stitch: boolean;
   product_id: string | null;
+  brand_organic_toggle: boolean;
+  brand_content_toggle: boolean;
   scheduled_time: string;
   status: 'pending' | 'uploading' | 'published' | 'failed';
   publish_id: string | null;
@@ -42,5 +44,7 @@ export interface CreateSchedulePayload {
   disable_duet: boolean;
   disable_stitch: boolean;
   product_id?: string | null;
+  brand_organic_toggle: boolean;
+  brand_content_toggle: boolean;
   scheduled_time: string;
 }

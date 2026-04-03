@@ -85,6 +85,8 @@ async def create_schedule(
         privacy_level=payload.privacy_level,
         scheduled_time=payload.scheduled_time,
         product_id=payload.product_id,
+        brand_organic_toggle=payload.brand_organic_toggle,
+        brand_content_toggle=payload.brand_content_toggle,
         disable_comment=payload.disable_comment,
         disable_duet=payload.disable_duet,
         disable_stitch=payload.disable_stitch,

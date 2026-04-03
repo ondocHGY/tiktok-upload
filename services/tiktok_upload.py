@@ -39,6 +39,8 @@ async def init_video_upload(
     disable_comment: bool,
     disable_duet: bool,
     disable_stitch: bool,
+    brand_organic_toggle: bool = False,
+    brand_content_toggle: bool = False,
     product_id: str | None = None,
 ) -> dict:
     """Initialize a video upload via the TikTok Content Posting API (FILE_UPLOAD)."""
@@ -55,9 +57,12 @@ async def init_video_upload(
         "disable_duet": disable_duet,
         "disable_stitch": disable_stitch,
     }
-    if product_id:
+    if brand_organic_toggle:
+        post_info["brand_organic_toggle"] = True
+    if brand_content_toggle:
         post_info["brand_content_toggle"] = True
         post_info["privacy_level"] = "PUBLIC_TO_EVERYONE"
+    if product_id and brand_content_toggle:
         post_info["product_links"] = [{"item_id": product_id}]
     payload = {
         "post_info": post_info,
@@ -190,6 +195,8 @@ async def execute_upload(schedule_id: int) -> None:
                 disable_comment=schedule.disable_comment,
                 disable_duet=schedule.disable_duet,
                 disable_stitch=schedule.disable_stitch,
+                brand_organic_toggle=schedule.brand_organic_toggle,
+                brand_content_toggle=schedule.brand_content_toggle,
                 product_id=schedule.product_id,
             )
 

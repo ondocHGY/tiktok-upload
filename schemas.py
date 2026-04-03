@@ -14,6 +14,8 @@ class ScheduleCreate(BaseModel):
     privacy_level: str = "SELF_ONLY"
     scheduled_time: datetime
     product_id: Optional[str] = None
+    brand_organic_toggle: bool = False
+    brand_content_toggle: bool = False
     disable_comment: bool = False
     disable_duet: bool = False
     disable_stitch: bool = False
@@ -26,6 +28,8 @@ class ScheduleUpdate(BaseModel):
     privacy_level: Optional[str] = None
     scheduled_time: Optional[datetime] = None
     product_id: Optional[str] = None
+    brand_organic_toggle: Optional[bool] = None
+    brand_content_toggle: Optional[bool] = None
     disable_comment: Optional[bool] = None
     disable_duet: Optional[bool] = None
     disable_stitch: Optional[bool] = None
@@ -43,6 +47,8 @@ class ScheduleResponse(BaseModel):
     disable_duet: bool
     disable_stitch: bool
     product_id: Optional[str] = None
+    brand_organic_toggle: bool = False
+    brand_content_toggle: bool = False
     scheduled_time: datetime
     status: str
     publish_id: Optional[str] = None
