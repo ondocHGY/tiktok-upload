@@ -33,7 +33,7 @@ async def replace_audio(video_path: str, audio_path: str) -> str:
         "-map", "0:v",
         "-map", "1:a",
         "-c:v", "copy",
-        "-shortest",
+        "-map_metadata", "0",
         tmp_path,
         stdout=asyncio.subprocess.DEVNULL,
         stderr=asyncio.subprocess.PIPE,
