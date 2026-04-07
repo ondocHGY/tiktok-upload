@@ -17,7 +17,7 @@ import {
   Divider,
   Card,
 } from 'antd';
-import { ArrowLeftOutlined, UploadOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, UploadOutlined, InfoCircleOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { TikTokAccount, CreateSchedulePayload, Product } from '../types';
@@ -28,6 +28,10 @@ import {
   updateSchedule,
   getSchedule,
   uploadVideoFile,
+  deleteVideoFile,
+  getAudioFiles,
+  uploadAudioFile,
+  deleteAudioFile,
   getProducts,
   getCreatorInfo,
 } from '../api/client';
@@ -59,9 +63,11 @@ const ScheduleForm: React.FC = () => {
   const [accounts, setAccounts] = useState<TikTokAccount[]>([]);
   const [videoFiles, setVideoFiles] = useState<string[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [audioFiles, setAudioFiles] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingAudio, setUploadingAudio] = useState(false);
   const [creatorInfo, setCreatorInfo] = useState<CreatorInfo | null>(null);
   const [creatorLoading, setCreatorLoading] = useState(false);
 
@@ -78,13 +84,15 @@ const ScheduleForm: React.FC = () => {
     const fetchFormData = async () => {
       setLoading(true);
       try {
-        const [accountsData, videosData, productsData] = await Promise.all([
+        const [accountsData, videosData, audiosData, productsData] = await Promise.all([
           getAccounts(),
           getVideoFiles(),
+          getAudioFiles(),
           getProducts(),
         ]);
         setAccounts(accountsData);
         setVideoFiles(videosData);
+        setAudioFiles(audiosData);
         setProducts(productsData);
 
         if (isEdit && id) {
@@ -196,7 +204,8 @@ const ScheduleForm: React.FC = () => {
         disable_stitch: !values.allow_stitch,
         brand_organic_toggle: yourBrand,
         brand_content_toggle: brandedContent,
-        product_id: brandedContent ? (selectedProductId || null) : null,
+        product_id: (yourBrand || brandedContent) ? (selectedProductId || null) : null,
+        audio_filename: values.audio_filename || null,
         scheduled_time: values.scheduled_time.toISOString(),
       };
 
@@ -301,6 +310,30 @@ const ScheduleForm: React.FC = () => {
         >
           <Select
             placeholder="업로드할 영상 파일을 선택하세요"
+            optionRender={(option) => (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>{option.label}</span>
+                <Button
+                  type="text"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    try {
+                      await deleteVideoFile(option.value as string);
+                      setVideoFiles((prev) => prev.filter((f) => f !== option.value));
+                      if (form.getFieldValue('video_filename') === option.value) {
+                        form.setFieldValue('video_filename', undefined);
+                      }
+                      message.success('파일이 삭제되었습니다.');
+                    } catch (err: any) {
+                      message.error(err?.response?.data?.detail || '파일 삭제에 실패했습니다.');
+                    }
+                  }}
+                />
+              </div>
+            )}
             dropdownRender={(menu) => (
               <>
                 {menu}
@@ -330,13 +363,72 @@ const ScheduleForm: React.FC = () => {
                 </div>
               </>
             )}
-          >
-            {videoFiles.map((file) => (
-              <Select.Option key={file} value={file}>
-                {file}
-              </Select.Option>
-            ))}
-          </Select>
+            options={videoFiles.map((f) => ({ value: f, label: f }))}
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="audio_filename"
+          label="대체 음원 (Replace Audio, Optional)"
+        >
+          <Select
+            placeholder="음원을 선택하면 영상의 사운드를 교체하여 업로드합니다"
+            allowClear
+            optionRender={(option) => (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>{option.label}</span>
+                <Button
+                  type="text"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    try {
+                      await deleteAudioFile(option.value as string);
+                      setAudioFiles((prev) => prev.filter((f) => f !== option.value));
+                      if (form.getFieldValue('audio_filename') === option.value) {
+                        form.setFieldValue('audio_filename', undefined);
+                      }
+                      message.success('파일이 삭제되었습니다.');
+                    } catch (err: any) {
+                      message.error(err?.response?.data?.detail || '파일 삭제에 실패했습니다.');
+                    }
+                  }}
+                />
+              </div>
+            )}
+            dropdownRender={(menu) => (
+              <>
+                {menu}
+                <div style={{ padding: 8, borderTop: '1px solid #f0f0f0' }}>
+                  <Upload
+                    accept=".mp3,.aac,.wav,.flac,.ogg,.m4a,.opus,.wma"
+                    showUploadList={false}
+                    beforeUpload={async (file) => {
+                      setUploadingAudio(true);
+                      try {
+                        const filename = await uploadAudioFile(file);
+                        setAudioFiles((prev) => [...prev, filename]);
+                        form.setFieldValue('audio_filename', filename);
+                        message.success(`${filename} 업로드 완료`);
+                      } catch {
+                        message.error('파일 업로드에 실패했습니다.');
+                      } finally {
+                        setUploadingAudio(false);
+                      }
+                      return false;
+                    }}
+                  >
+                    <Button icon={<UploadOutlined />} loading={uploadingAudio} block>
+                      음원 파일 업로드 (Upload Audio File)
+                    </Button>
+                  </Upload>
+                </div>
+              </>
+            )}
+            options={audioFiles.map((f) => ({ value: f, label: f }))}
+          />
         </Form.Item>
 
         <Form.Item

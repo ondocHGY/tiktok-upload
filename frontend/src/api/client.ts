@@ -47,6 +47,28 @@ export const uploadVideoFile = async (file: File): Promise<string> => {
   return response.data.filename;
 };
 
+export const deleteVideoFile = async (filename: string): Promise<void> => {
+  await api.delete(`/api/schedules/videos/${encodeURIComponent(filename)}`);
+};
+
+export const getAudioFiles = async (): Promise<string[]> => {
+  const response = await api.get('/api/schedules/audios/list');
+  return response.data.files;
+};
+
+export const uploadAudioFile = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post('/api/schedules/audios/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data.filename;
+};
+
+export const deleteAudioFile = async (filename: string): Promise<void> => {
+  await api.delete(`/api/schedules/audios/${encodeURIComponent(filename)}`);
+};
+
 export const uploadNow = async (id: number): Promise<void> => {
   await api.post(`/api/schedules/${id}/upload-now`);
 };

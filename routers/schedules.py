@@ -85,6 +85,7 @@ async def create_schedule(
         privacy_level=payload.privacy_level,
         scheduled_time=payload.scheduled_time,
         product_id=payload.product_id,
+        audio_filename=os.path.basename(payload.audio_filename) if payload.audio_filename else None,
         brand_organic_toggle=payload.brand_organic_toggle,
         brand_content_toggle=payload.brand_content_toggle,
         disable_comment=payload.disable_comment,
@@ -140,6 +141,83 @@ async def upload_video_file(file: UploadFile = File(...)):
             f.write(chunk)
 
     return {"filename": filename}
+
+
+@router.delete("/videos/{filename}")
+async def delete_video_file(filename: str, db: AsyncSession = Depends(get_db)):
+    """Delete a video file from VIDEO_DIR. Blocked if a pending/uploading schedule uses it."""
+    safe_filename = os.path.basename(filename)
+    video_path = os.path.join(settings.VIDEO_DIR, safe_filename)
+
+    if not os.path.isfile(video_path):
+        raise HTTPException(status_code=404, detail="파일을 찾을 수 없습니다.")
+
+    in_use = await db.execute(
+        select(ScheduledUpload).where(
+            ScheduledUpload.video_filename == safe_filename,
+            ScheduledUpload.status.in_(["pending", "uploading"]),
+        )
+    )
+    if in_use.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="대기 중이거나 업로드 중인 예약에서 사용 중인 파일입니다.")
+
+    os.remove(video_path)
+    return {"message": "삭제되었습니다."}
+
+
+@router.get("/audios/list")
+async def list_audio_files():
+    """List available audio files in the configured AUDIO_DIR."""
+    audio_dir = settings.AUDIO_DIR
+    if not os.path.isdir(audio_dir):
+        return {"files": []}
+
+    audio_exts = {".mp3", ".aac", ".wav", ".flac", ".ogg", ".m4a", ".opus", ".wma"}
+    files = [
+        f
+        for f in os.listdir(audio_dir)
+        if os.path.isfile(os.path.join(audio_dir, f))
+        and not f.startswith(".")
+        and os.path.splitext(f)[1].lower() in audio_exts
+    ]
+    files.sort()
+    return {"files": files}
+
+
+@router.post("/audios/upload")
+async def upload_audio_file(file: UploadFile = File(...)):
+    """Upload an audio file to the AUDIO_DIR."""
+    audio_dir = settings.AUDIO_DIR
+    os.makedirs(audio_dir, exist_ok=True)
+
+    filename = file.filename or "audio.mp3"
+    save_path = os.path.join(audio_dir, filename)
+    if os.path.exists(save_path):
+        name, ext = os.path.splitext(filename)
+        counter = 1
+        while os.path.exists(save_path):
+            filename = f"{name}_{counter}{ext}"
+            save_path = os.path.join(audio_dir, filename)
+            counter += 1
+
+    with open(save_path, "wb") as f:
+        while chunk := await file.read(1024 * 1024):
+            f.write(chunk)
+
+    return {"filename": filename}
+
+
+@router.delete("/audios/{filename}")
+async def delete_audio_file(filename: str):
+    """Delete an audio file from AUDIO_DIR."""
+    safe_filename = os.path.basename(filename)
+    audio_path = os.path.join(settings.AUDIO_DIR, safe_filename)
+
+    if not os.path.isfile(audio_path):
+        raise HTTPException(status_code=404, detail="파일을 찾을 수 없습니다.")
+
+    os.remove(audio_path)
+    return {"message": "삭제되었습니다."}
 
 
 @router.post("/{schedule_id}/upload-now")

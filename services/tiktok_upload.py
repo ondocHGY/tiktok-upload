@@ -1,5 +1,7 @@
+import asyncio
 import logging
 import os
+import tempfile
 
 import httpx
 from sqlalchemy import select
@@ -15,6 +17,33 @@ logger = logging.getLogger(__name__)
 BASE_URL = "https://open.tiktokapis.com"
 DEFAULT_CHUNK_SIZE = 10 * 1024 * 1024  # 10 MB
 MAX_SINGLE_CHUNK_SIZE = 64 * 1024 * 1024  # 64 MB — TikTok max chunk size
+
+
+async def replace_audio(video_path: str, audio_path: str) -> str:
+    """Replace audio track in video using ffmpeg. Returns path to temp output file."""
+    suffix = os.path.splitext(video_path)[1] or ".mp4"
+    tmp = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
+    tmp.close()
+    tmp_path = tmp.name
+
+    proc = await asyncio.create_subprocess_exec(
+        "ffmpeg", "-y",
+        "-i", video_path,
+        "-i", audio_path,
+        "-map", "0:v",
+        "-map", "1:a",
+        "-c:v", "copy",
+        "-shortest",
+        tmp_path,
+        stdout=asyncio.subprocess.DEVNULL,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    _, stderr = await proc.communicate()
+    if proc.returncode != 0:
+        os.unlink(tmp_path)
+        raise RuntimeError(f"ffmpeg audio replacement failed: {stderr.decode()}")
+
+    return tmp_path
 
 
 async def query_creator_info(access_token: str) -> dict:
@@ -145,6 +174,7 @@ async def execute_upload(schedule_id: int) -> None:
         db.add(schedule)
         await db.commit()
 
+        tmp_video_path = None
         try:
             # Load account
             result = await db.execute(
@@ -180,6 +210,15 @@ async def execute_upload(schedule_id: int) -> None:
             video_path = os.path.join(settings.VIDEO_DIR, schedule.video_filename)
             if not os.path.isfile(video_path):
                 raise FileNotFoundError(f"Video file not found: {video_path}")
+
+            # Replace audio if specified
+            if schedule.audio_filename:
+                audio_path = os.path.join(settings.AUDIO_DIR, schedule.audio_filename)
+                if not os.path.isfile(audio_path):
+                    raise FileNotFoundError(f"Audio file not found: {audio_path}")
+                logger.info("Replacing audio: %s -> %s", schedule.audio_filename, schedule.video_filename)
+                tmp_video_path = await replace_audio(video_path, audio_path)
+                video_path = tmp_video_path
 
             video_size = os.path.getsize(video_path)
             # 64MB 이하는 단일 청크로 전송 (마지막 청크 5MB 미달 방지)
@@ -268,6 +307,10 @@ async def execute_upload(schedule_id: int) -> None:
             logger.exception("Upload failed for schedule %s", schedule_id)
             schedule.status = "failed"
             schedule.error_message = str(exc)
+
+        finally:
+            if tmp_video_path and os.path.exists(tmp_video_path):
+                os.unlink(tmp_video_path)
 
         db.add(schedule)
         await db.commit()

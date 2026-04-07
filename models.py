@@ -75,6 +75,7 @@ class ScheduledUpload(Base):
     disable_duet: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     disable_stitch: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     product_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    audio_filename: Mapped[str | None] = mapped_column(String(500), nullable=True)
     brand_organic_toggle: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     brand_content_toggle: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     video_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)

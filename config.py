@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change-me"
     ENCRYPTION_KEY: str = "change-me"
     VIDEO_DIR: str = "./videos"
+    AUDIO_DIR: str = "./audios"
 
     @property
     def DATABASE_URL(self) -> str:
