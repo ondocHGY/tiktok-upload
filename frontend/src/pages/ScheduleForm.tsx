@@ -431,7 +431,13 @@ const ScheduleForm: React.FC = () => {
                 <div>
                   <Checkbox
                     checked={yourBrand}
-                    onChange={(e) => setYourBrand(e.target.checked)}
+                    onChange={(e) => {
+                      setYourBrand(e.target.checked);
+                      if (!e.target.checked && !brandedContent) {
+                        setSelectedProductId(null);
+                        form.setFieldValue('product_id', undefined);
+                      }
+                    }}
                   >
                     <Text strong>Your Brand</Text>
                   </Checkbox>
@@ -474,7 +480,7 @@ const ScheduleForm: React.FC = () => {
                   />
                 )}
 
-                {brandedContent && (
+                {(yourBrand || brandedContent) && (
                   <Form.Item name="product_id" label="연결 상품 (Linked Product, Optional)" style={{ marginBottom: 0 }}>
                     <Select
                       placeholder="연결할 TikTok Shop 상품을 선택하세요 (Select linked product)"

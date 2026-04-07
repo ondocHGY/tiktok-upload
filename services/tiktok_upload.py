@@ -62,7 +62,7 @@ async def init_video_upload(
     if brand_content_toggle:
         post_info["brand_content_toggle"] = True
         post_info["privacy_level"] = "PUBLIC_TO_EVERYONE"
-    if product_id and brand_content_toggle:
+    if product_id and (brand_organic_toggle or brand_content_toggle):
         post_info["product_links"] = [{"item_id": product_id}]
     payload = {
         "post_info": post_info,
