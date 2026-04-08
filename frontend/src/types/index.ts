@@ -18,7 +18,6 @@ export interface ScheduledUpload {
   product_id: string | null;
   audio_filename: string | null;
   mute_audio: boolean;
-  auto_add_music: boolean;
   brand_organic_toggle: boolean;
   brand_content_toggle: boolean;
   scheduled_time: string;
@@ -49,7 +48,6 @@ export interface CreateSchedulePayload {
   product_id?: string | null;
   audio_filename?: string | null;
   mute_audio: boolean;
-  auto_add_music: boolean;
   brand_organic_toggle: boolean;
   brand_content_toggle: boolean;
   scheduled_time: string;

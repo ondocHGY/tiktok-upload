@@ -94,7 +94,6 @@ async def init_video_upload(
     brand_organic_toggle: bool = False,
     brand_content_toggle: bool = False,
     product_id: str | None = None,
-    auto_add_music: bool = True,
 ) -> dict:
     """Initialize a video upload via the TikTok Content Posting API (FILE_UPLOAD)."""
     url = f"{BASE_URL}/v2/post/publish/video/init/"
@@ -109,7 +108,6 @@ async def init_video_upload(
         "disable_comment": disable_comment,
         "disable_duet": disable_duet,
         "disable_stitch": disable_stitch,
-        "auto_add_music": auto_add_music,
     }
     if brand_organic_toggle:
         post_info["brand_organic_toggle"] = True
@@ -267,7 +265,6 @@ async def execute_upload(schedule_id: int) -> None:
                     brand_organic_toggle=schedule.brand_organic_toggle,
                     brand_content_toggle=schedule.brand_content_toggle,
                     product_id=schedule.product_id,
-                    auto_add_music=schedule.auto_add_music,
                 )
             except httpx.HTTPStatusError as brand_err:
                 if brand_err.response.status_code == 403 and (
@@ -289,7 +286,6 @@ async def execute_upload(schedule_id: int) -> None:
                         brand_organic_toggle=False,
                         brand_content_toggle=False,
                         product_id=None,
-                        auto_add_music=schedule.auto_add_music,
                     )
                 else:
                     raise

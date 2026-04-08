@@ -77,7 +77,6 @@ class ScheduledUpload(Base):
     product_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     audio_filename: Mapped[str | None] = mapped_column(String(500), nullable=True)
     mute_audio: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    auto_add_music: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     brand_organic_toggle: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     brand_content_toggle: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     video_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)

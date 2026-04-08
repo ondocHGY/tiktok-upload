@@ -16,7 +16,6 @@ class ScheduleCreate(BaseModel):
     product_id: Optional[str] = None
     audio_filename: Optional[str] = None
     mute_audio: bool = True
-    auto_add_music: bool = True
     brand_organic_toggle: bool = False
     brand_content_toggle: bool = False
     disable_comment: bool = False
@@ -33,7 +32,6 @@ class ScheduleUpdate(BaseModel):
     product_id: Optional[str] = None
     audio_filename: Optional[str] = None
     mute_audio: Optional[bool] = None
-    auto_add_music: Optional[bool] = None
     brand_organic_toggle: Optional[bool] = None
     brand_content_toggle: Optional[bool] = None
     disable_comment: Optional[bool] = None
@@ -55,7 +53,6 @@ class ScheduleResponse(BaseModel):
     product_id: Optional[str] = None
     audio_filename: Optional[str] = None
     mute_audio: bool = True
-    auto_add_music: bool = True
     brand_organic_toggle: bool = False
     brand_content_toggle: bool = False
     scheduled_time: datetime

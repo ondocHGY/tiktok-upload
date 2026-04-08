@@ -78,7 +78,6 @@ const ScheduleForm: React.FC = () => {
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
 
   const [muteAudio, setMuteAudio] = useState(true);
-  const [autoAddMusic, setAutoAddMusic] = useState(true);
   const [musicConsent, setMusicConsent] = useState(false);
   const creatorInfoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -116,7 +115,6 @@ const ScheduleForm: React.FC = () => {
           setBrandedContent(schedule.brand_content_toggle || false);
           setSelectedProductId(schedule.product_id || null);
           setMuteAudio(schedule.mute_audio ?? true);
-          setAutoAddMusic(schedule.auto_add_music ?? true);
           await fetchCreatorInfo(schedule.account_id);
         }
       } catch (error) {
@@ -211,7 +209,6 @@ const ScheduleForm: React.FC = () => {
         product_id: (yourBrand || brandedContent) ? (selectedProductId || null) : null,
         audio_filename: !muteAudio ? (values.audio_filename || null) : null,
         mute_audio: muteAudio,
-        auto_add_music: autoAddMusic,
         scheduled_time: values.scheduled_time.toISOString(),
       };
 
@@ -376,19 +373,11 @@ const ScheduleForm: React.FC = () => {
         <Form.Item label="음소거 업로드 (Mute Audio)">
           <Space direction="vertical" size={8} style={{ width: '100%' }}>
             <Space>
-              <Switch checked={muteAudio} onChange={(checked) => { setMuteAudio(checked); if (!checked) setAutoAddMusic(false); }} />
+              <Switch checked={muteAudio} onChange={setMuteAudio} />
               <Text type="secondary" style={{ fontSize: 13 }}>
                 {muteAudio ? '음소거로 업로드됩니다.' : '원본 음원 또는 대체 음원으로 업로드됩니다.'}
               </Text>
             </Space>
-            {muteAudio && (
-              <Space>
-                <Switch checked={autoAddMusic} onChange={setAutoAddMusic} />
-                <Text type="secondary" style={{ fontSize: 13 }}>
-                  {autoAddMusic ? 'TikTok이 자동으로 배경음악을 추가합니다.' : '음소거 상태 그대로 업로드됩니다.'}
-                </Text>
-              </Space>
-            )}
           </Space>
         </Form.Item>
 
