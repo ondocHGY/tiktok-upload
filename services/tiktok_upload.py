@@ -19,6 +19,30 @@ DEFAULT_CHUNK_SIZE = 10 * 1024 * 1024  # 10 MB
 MAX_SINGLE_CHUNK_SIZE = 64 * 1024 * 1024  # 64 MB — TikTok max chunk size
 
 
+async def mute_video(video_path: str) -> str:
+    """Remove audio track from video using ffmpeg. Returns path to temp output file."""
+    suffix = os.path.splitext(video_path)[1] or ".mp4"
+    tmp = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
+    tmp.close()
+    tmp_path = tmp.name
+
+    proc = await asyncio.create_subprocess_exec(
+        "ffmpeg", "-y",
+        "-i", video_path,
+        "-an",
+        "-c:v", "copy",
+        tmp_path,
+        stdout=asyncio.subprocess.DEVNULL,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    _, stderr = await proc.communicate()
+    if proc.returncode != 0:
+        os.unlink(tmp_path)
+        raise RuntimeError(f"ffmpeg mute failed: {stderr.decode()}")
+
+    return tmp_path
+
+
 async def replace_audio(video_path: str, audio_path: str) -> str:
     """Replace audio track in video using ffmpeg. Returns path to temp output file."""
     suffix = os.path.splitext(video_path)[1] or ".mp4"
@@ -33,7 +57,6 @@ async def replace_audio(video_path: str, audio_path: str) -> str:
         "-map", "0:v",
         "-map", "1:a",
         "-c:v", "copy",
-        "-map_metadata", "0",
         tmp_path,
         stdout=asyncio.subprocess.DEVNULL,
         stderr=asyncio.subprocess.PIPE,
@@ -71,6 +94,7 @@ async def init_video_upload(
     brand_organic_toggle: bool = False,
     brand_content_toggle: bool = False,
     product_id: str | None = None,
+    auto_add_music: bool = True,
 ) -> dict:
     """Initialize a video upload via the TikTok Content Posting API (FILE_UPLOAD)."""
     url = f"{BASE_URL}/v2/post/publish/video/init/"
@@ -85,6 +109,7 @@ async def init_video_upload(
         "disable_comment": disable_comment,
         "disable_duet": disable_duet,
         "disable_stitch": disable_stitch,
+        "auto_add_music": auto_add_music,
     }
     if brand_organic_toggle:
         post_info["brand_organic_toggle"] = True
@@ -211,8 +236,12 @@ async def execute_upload(schedule_id: int) -> None:
             if not os.path.isfile(video_path):
                 raise FileNotFoundError(f"Video file not found: {video_path}")
 
-            # Replace audio if specified
-            if schedule.audio_filename:
+            # Audio processing: mute or replace
+            if schedule.mute_audio:
+                logger.info("Muting audio for schedule %s", schedule_id)
+                tmp_video_path = await mute_video(video_path)
+                video_path = tmp_video_path
+            elif schedule.audio_filename:
                 audio_path = os.path.join(settings.AUDIO_DIR, schedule.audio_filename)
                 if not os.path.isfile(audio_path):
                     raise FileNotFoundError(f"Audio file not found: {audio_path}")
@@ -238,6 +267,7 @@ async def execute_upload(schedule_id: int) -> None:
                     brand_organic_toggle=schedule.brand_organic_toggle,
                     brand_content_toggle=schedule.brand_content_toggle,
                     product_id=schedule.product_id,
+                    auto_add_music=schedule.auto_add_music,
                 )
             except httpx.HTTPStatusError as brand_err:
                 if brand_err.response.status_code == 403 and (
@@ -259,6 +289,7 @@ async def execute_upload(schedule_id: int) -> None:
                         brand_organic_toggle=False,
                         brand_content_toggle=False,
                         product_id=None,
+                        auto_add_music=schedule.auto_add_music,
                     )
                 else:
                     raise

@@ -77,6 +77,8 @@ const ScheduleForm: React.FC = () => {
   const [brandedContent, setBrandedContent] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
 
+  const [muteAudio, setMuteAudio] = useState(true);
+  const [autoAddMusic, setAutoAddMusic] = useState(true);
   const [musicConsent, setMusicConsent] = useState(false);
   const creatorInfoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -113,6 +115,8 @@ const ScheduleForm: React.FC = () => {
           setYourBrand(schedule.brand_organic_toggle || false);
           setBrandedContent(schedule.brand_content_toggle || false);
           setSelectedProductId(schedule.product_id || null);
+          setMuteAudio(schedule.mute_audio ?? true);
+          setAutoAddMusic(schedule.auto_add_music ?? true);
           await fetchCreatorInfo(schedule.account_id);
         }
       } catch (error) {
@@ -205,7 +209,9 @@ const ScheduleForm: React.FC = () => {
         brand_organic_toggle: yourBrand,
         brand_content_toggle: brandedContent,
         product_id: (yourBrand || brandedContent) ? (selectedProductId || null) : null,
-        audio_filename: values.audio_filename || null,
+        audio_filename: !muteAudio ? (values.audio_filename || null) : null,
+        mute_audio: muteAudio,
+        auto_add_music: autoAddMusic,
         scheduled_time: values.scheduled_time.toISOString(),
       };
 
@@ -367,69 +373,90 @@ const ScheduleForm: React.FC = () => {
           />
         </Form.Item>
 
-        <Form.Item
-          name="audio_filename"
-          label="대체 음원 (Replace Audio, Optional)"
-        >
-          <Select
-            placeholder="음원을 선택하면 영상의 사운드를 교체하여 업로드합니다"
-            allowClear
-            optionRender={(option) => (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>{option.label}</span>
-                <Button
-                  type="text"
-                  size="small"
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    try {
-                      await deleteAudioFile(option.value as string);
-                      setAudioFiles((prev) => prev.filter((f) => f !== option.value));
-                      if (form.getFieldValue('audio_filename') === option.value) {
-                        form.setFieldValue('audio_filename', undefined);
-                      }
-                      message.success('파일이 삭제되었습니다.');
-                    } catch (err: any) {
-                      message.error(err?.response?.data?.detail || '파일 삭제에 실패했습니다.');
-                    }
-                  }}
-                />
-              </div>
+        <Form.Item label="음소거 업로드 (Mute Audio)">
+          <Space direction="vertical" size={8} style={{ width: '100%' }}>
+            <Space>
+              <Switch checked={muteAudio} onChange={(checked) => { setMuteAudio(checked); if (!checked) setAutoAddMusic(false); }} />
+              <Text type="secondary" style={{ fontSize: 13 }}>
+                {muteAudio ? '음소거로 업로드됩니다.' : '원본 음원 또는 대체 음원으로 업로드됩니다.'}
+              </Text>
+            </Space>
+            {muteAudio && (
+              <Space>
+                <Switch checked={autoAddMusic} onChange={setAutoAddMusic} />
+                <Text type="secondary" style={{ fontSize: 13 }}>
+                  {autoAddMusic ? 'TikTok이 자동으로 배경음악을 추가합니다.' : '음소거 상태 그대로 업로드됩니다.'}
+                </Text>
+              </Space>
             )}
-            dropdownRender={(menu) => (
-              <>
-                {menu}
-                <div style={{ padding: 8, borderTop: '1px solid #f0f0f0' }}>
-                  <Upload
-                    accept=".mp3,.aac,.wav,.flac,.ogg,.m4a,.opus,.wma"
-                    showUploadList={false}
-                    beforeUpload={async (file) => {
-                      setUploadingAudio(true);
-                      try {
-                        const filename = await uploadAudioFile(file);
-                        setAudioFiles((prev) => [...prev, filename]);
-                        form.setFieldValue('audio_filename', filename);
-                        message.success(`${filename} 업로드 완료`);
-                      } catch {
-                        message.error('파일 업로드에 실패했습니다.');
-                      } finally {
-                        setUploadingAudio(false);
-                      }
-                      return false;
-                    }}
-                  >
-                    <Button icon={<UploadOutlined />} loading={uploadingAudio} block>
-                      음원 파일 업로드 (Upload Audio File)
-                    </Button>
-                  </Upload>
-                </div>
-              </>
-            )}
-            options={audioFiles.map((f) => ({ value: f, label: f }))}
-          />
+          </Space>
         </Form.Item>
+
+        {!muteAudio && (
+          <Form.Item
+            name="audio_filename"
+            label="대체 음원 (Replace Audio, Optional)"
+          >
+            <Select
+              placeholder="선택하지 않으면 영상 원본 음원 그대로 업로드됩니다"
+              allowClear
+              optionRender={(option) => (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>{option.label}</span>
+                  <Button
+                    type="text"
+                    size="small"
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      try {
+                        await deleteAudioFile(option.value as string);
+                        setAudioFiles((prev) => prev.filter((f) => f !== option.value));
+                        if (form.getFieldValue('audio_filename') === option.value) {
+                          form.setFieldValue('audio_filename', undefined);
+                        }
+                        message.success('파일이 삭제되었습니다.');
+                      } catch (err: any) {
+                        message.error(err?.response?.data?.detail || '파일 삭제에 실패했습니다.');
+                      }
+                    }}
+                  />
+                </div>
+              )}
+              dropdownRender={(menu) => (
+                <>
+                  {menu}
+                  <div style={{ padding: 8, borderTop: '1px solid #f0f0f0' }}>
+                    <Upload
+                      accept=".mp3,.aac,.wav,.flac,.ogg,.m4a,.opus,.wma"
+                      showUploadList={false}
+                      beforeUpload={async (file) => {
+                        setUploadingAudio(true);
+                        try {
+                          const filename = await uploadAudioFile(file);
+                          setAudioFiles((prev) => [...prev, filename]);
+                          form.setFieldValue('audio_filename', filename);
+                          message.success(`${filename} 업로드 완료`);
+                        } catch {
+                          message.error('파일 업로드에 실패했습니다.');
+                        } finally {
+                          setUploadingAudio(false);
+                        }
+                        return false;
+                      }}
+                    >
+                      <Button icon={<UploadOutlined />} loading={uploadingAudio} block>
+                        음원 파일 업로드 (Upload Audio File)
+                      </Button>
+                    </Upload>
+                  </div>
+                </>
+              )}
+              options={audioFiles.map((f) => ({ value: f, label: f }))}
+            />
+          </Form.Item>
+        )}
 
         <Form.Item
           name="title"
