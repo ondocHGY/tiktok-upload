@@ -89,8 +89,13 @@ async def refresh_access_token(refresh_token: str) -> dict:
             data=payload,
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
-        resp.raise_for_status()
-        return resp.json()
+        body = resp.json()
+        if not resp.is_success:
+            error_desc = body.get("error_description") or body.get("error") or resp.text
+            raise RuntimeError(f"TikTok token refresh failed ({resp.status_code}): {error_desc}")
+        if not body.get("access_token"):
+            raise RuntimeError(f"TikTok token refresh returned no access_token: {body}")
+        return body
 
 
 async def ensure_valid_token(account: TikTokAccount, db: AsyncSession) -> str:
@@ -103,15 +108,25 @@ async def ensure_valid_token(account: TikTokAccount, db: AsyncSession) -> str:
     ) > now + timedelta(minutes=5):
         return account.access_token
 
+    # Check if refresh token itself has expired
+    if account.refresh_expires_at and account.refresh_expires_at.replace(
+        tzinfo=timezone.utc
+    ) <= now:
+        raise RuntimeError(
+            f"Refresh token for account {account.open_id} has expired. "
+            "Re-authentication required."
+        )
+
     # Token expired or about to expire -- refresh it
     data = await refresh_access_token(account.refresh_token)
 
     account.access_token = data["access_token"]
-    account.refresh_token = data["refresh_token"]
+    # TikTok rotates the refresh token on each use; fall back to existing if not returned
+    if data.get("refresh_token"):
+        account.refresh_token = data["refresh_token"]
     account.token_expires_at = now + timedelta(seconds=data["expires_in"])
-    account.refresh_expires_at = now + timedelta(
-        seconds=data["refresh_expires_in"]
-    )
+    if data.get("refresh_expires_in"):
+        account.refresh_expires_at = now + timedelta(seconds=data["refresh_expires_in"])
 
     db.add(account)
     await db.commit()
