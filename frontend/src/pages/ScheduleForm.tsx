@@ -20,7 +20,14 @@ import {
 import { ArrowLeftOutlined, UploadOutlined, InfoCircleOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
 import { TikTokAccount, CreateSchedulePayload, Product } from '../types';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+const US_TZ = 'America/New_York';
 import {
   getAccounts,
   getVideoFiles,
@@ -102,7 +109,7 @@ const ScheduleForm: React.FC = () => {
             account_id: schedule.account_id,
             video_filename: schedule.video_filename,
             title: schedule.title,
-            scheduled_time: dayjs(schedule.scheduled_time),
+            scheduled_time: dayjs(schedule.scheduled_time).tz(US_TZ),
             privacy_level: schedule.privacy_level,
             allow_comment: !schedule.disable_comment,
             allow_duet: !schedule.disable_duet,
@@ -209,7 +216,7 @@ const ScheduleForm: React.FC = () => {
         product_id: (yourBrand || brandedContent) ? (selectedProductId || null) : null,
         audio_filename: !muteAudio ? (values.audio_filename || null) : null,
         mute_audio: muteAudio,
-        scheduled_time: values.scheduled_time.toISOString(),
+        scheduled_time: dayjs.tz(values.scheduled_time.format('YYYY-MM-DD HH:mm:ss'), US_TZ).toISOString(),
       };
 
       if (isEdit && id) {
@@ -462,15 +469,20 @@ const ScheduleForm: React.FC = () => {
 
         <Form.Item
           name="scheduled_time"
-          label="예약 시간 (Scheduled Time)"
+          label="예약 시간 (Scheduled Time, 미국 동부시간 ET)"
           rules={[{ required: true, message: '예약 시간을 선택해주세요.' }]}
+          extra={
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              입력한 시간은 미국 동부시간(America/New_York) 기준으로 처리됩니다. 현재 ET: {dayjs().tz(US_TZ).format('YYYY-MM-DD HH:mm')}
+            </Text>
+          }
         >
           <DatePicker
             showTime={{ format: 'HH:mm' }}
             format="YYYY-MM-DD HH:mm"
-            placeholder="예약 날짜와 시간을 선택하세요"
+            placeholder="미국 동부시간 기준 날짜/시간을 선택하세요"
             style={{ width: '100%' }}
-            disabledDate={(current) => current && current < dayjs().startOf('day')}
+            disabledDate={(current) => current && current < dayjs().tz(US_TZ).startOf('day')}
           />
         </Form.Item>
 

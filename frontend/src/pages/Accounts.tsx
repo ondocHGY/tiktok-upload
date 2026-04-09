@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Button, Space, Popconfirm, message, Typography, Empty, Spin, Row, Col, Descriptions, Modal, Form, Input } from 'antd';
-import { PlusOutlined, DeleteOutlined, UserOutlined, EditOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, UserOutlined, EditOutlined, ReloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { TikTokAccount } from '../types';
 import { getAccounts, deleteAccount, loginTikTok, updateAccount } from '../api/client';
@@ -99,6 +99,9 @@ const Accounts: React.FC = () => {
               <Card
                 hoverable
                 actions={[
+                  <Button key="reauth" type="text" icon={<ReloadOutlined />} onClick={loginTikTok}>
+                    재인증
+                  </Button>,
                   <Button key="edit" type="text" icon={<EditOutlined />} onClick={() => openEdit(account)}>
                     이름 변경
                   </Button>,
