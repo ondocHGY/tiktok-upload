@@ -98,7 +98,6 @@ const Dashboard: React.FC = () => {
       render: (time: string) => dayjs(time).format('YYYY-MM-DD HH:mm'),
       sorter: (a: ScheduledUpload, b: ScheduledUpload) =>
         dayjs(a.scheduled_time).unix() - dayjs(b.scheduled_time).unix(),
-      defaultSortOrder: 'ascend' as const,
     },
     {
       title: '상태',
@@ -199,7 +198,15 @@ const Dashboard: React.FC = () => {
 
       <Table
         columns={columns}
-        dataSource={schedules}
+        dataSource={[...schedules].sort((a, b) => {
+          const aPending = a.status === 'pending';
+          const bPending = b.status === 'pending';
+          if (aPending && !bPending) return -1;
+          if (!aPending && bPending) return 1;
+          const at = dayjs(a.scheduled_time).unix();
+          const bt = dayjs(b.scheduled_time).unix();
+          return aPending ? at - bt : bt - at;
+        })}
         rowKey="id"
         loading={loading}
         pagination={{
