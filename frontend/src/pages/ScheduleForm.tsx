@@ -23,11 +23,6 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import { TikTokAccount, CreateSchedulePayload, Product } from '../types';
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
-
-const US_TZ = 'America/New_York';
 import {
   getAccounts,
   getVideoFiles,
@@ -42,6 +37,11 @@ import {
   getProducts,
   getCreatorInfo,
 } from '../api/client';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+const US_TZ = 'America/New_York';
 
 const { Title, Text, Link } = Typography;
 const { TextArea } = Input;
