@@ -16,10 +16,12 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - VIDEO_DIR=/app/videos
+      - AUDIO_DIR=/app/audios
       - FRONTEND_URL=${FRONTEND_URL}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
     volumes:
       - ./videos:/app/videos
+      - ./audios:/app/audios
 
   frontend:
     build: ./frontend

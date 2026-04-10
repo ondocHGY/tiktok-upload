@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Table, Button, Space, Popconfirm, Tabs, message, Tooltip, Typography } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined, PlayCircleOutlined } from '@ant-design/icons';
+import { Table, Button, Space, Popconfirm, Tabs, message, Tooltip, Typography, Modal, Descriptions } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined, PlayCircleOutlined, EyeOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { ScheduledUpload, TikTokAccount } from '../types';
@@ -14,6 +14,7 @@ const Dashboard: React.FC = () => {
   const [accounts, setAccounts] = useState<TikTokAccount[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
+  const [detailSchedule, setDetailSchedule] = useState<ScheduledUpload | null>(null);
   const navigate = useNavigate();
 
   const fetchData = useCallback(async () => {
@@ -112,6 +113,14 @@ const Dashboard: React.FC = () => {
       width: 160,
       render: (_: unknown, record: ScheduledUpload) => (
         <Space>
+          <Tooltip title="상세 보기">
+            <Button
+              type="text"
+              icon={<EyeOutlined />}
+              size="small"
+              onClick={() => setDetailSchedule(record)}
+            />
+          </Tooltip>
           {record.status === 'pending' && (
             <>
               <Popconfirm
@@ -216,6 +225,66 @@ const Dashboard: React.FC = () => {
         }}
         locale={{ emptyText: '예약된 업로드가 없습니다.' }}
       />
+
+      <Modal
+        title="예약 상세 정보"
+        open={detailSchedule !== null}
+        onCancel={() => setDetailSchedule(null)}
+        footer={[
+          <Button key="close" onClick={() => setDetailSchedule(null)}>
+            닫기
+          </Button>,
+        ]}
+        width={720}
+      >
+        {detailSchedule && (
+          <Descriptions column={1} bordered size="small">
+            <Descriptions.Item label="ID">{detailSchedule.id}</Descriptions.Item>
+            <Descriptions.Item label="상태">
+              <StatusBadge status={detailSchedule.status} />
+            </Descriptions.Item>
+            <Descriptions.Item label="계정">{getAccountName(detailSchedule.account_id)}</Descriptions.Item>
+            <Descriptions.Item label="제목">{detailSchedule.title}</Descriptions.Item>
+            <Descriptions.Item label="영상 파일">{detailSchedule.video_filename}</Descriptions.Item>
+            <Descriptions.Item label="예약 시간">
+              {dayjs(detailSchedule.scheduled_time).format('YYYY-MM-DD HH:mm')}
+            </Descriptions.Item>
+            <Descriptions.Item label="공개 범위">{detailSchedule.privacy_level}</Descriptions.Item>
+            <Descriptions.Item label="음소거 업로드">
+              {detailSchedule.mute_audio ? '예' : '아니오'}
+            </Descriptions.Item>
+            <Descriptions.Item label="대체 음원">
+              {detailSchedule.audio_filename || '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label="상품 ID">{detailSchedule.product_id || '-'}</Descriptions.Item>
+            <Descriptions.Item label="댓글 비활성화">
+              {detailSchedule.disable_comment ? '예' : '아니오'}
+            </Descriptions.Item>
+            <Descriptions.Item label="듀엣 비활성화">
+              {detailSchedule.disable_duet ? '예' : '아니오'}
+            </Descriptions.Item>
+            <Descriptions.Item label="스티치 비활성화">
+              {detailSchedule.disable_stitch ? '예' : '아니오'}
+            </Descriptions.Item>
+            <Descriptions.Item label="브랜드 (본인 콘텐츠)">
+              {detailSchedule.brand_organic_toggle ? '예' : '아니오'}
+            </Descriptions.Item>
+            <Descriptions.Item label="브랜드 (유료 파트너십)">
+              {detailSchedule.brand_content_toggle ? '예' : '아니오'}
+            </Descriptions.Item>
+            <Descriptions.Item label="Publish ID">{detailSchedule.publish_id || '-'}</Descriptions.Item>
+            <Descriptions.Item label="오류 메시지">
+              {detailSchedule.error_message || '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label="생성 시각">
+              {dayjs(detailSchedule.created_at).format('YYYY-MM-DD HH:mm:ss')}
+            </Descriptions.Item>
+            <Descriptions.Item label="수정 시각">
+              {dayjs(detailSchedule.updated_at).format('YYYY-MM-DD HH:mm:ss')}
+            </Descriptions.Item>
+          </Descriptions>
+        )}
+      </Modal>
     </div>
   );
 };

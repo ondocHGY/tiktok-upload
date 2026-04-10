@@ -85,6 +85,7 @@ async def create_schedule(
         privacy_level=payload.privacy_level,
         scheduled_time=payload.scheduled_time,
         product_id=payload.product_id,
+        mute_audio=payload.mute_audio,
         audio_filename=os.path.basename(payload.audio_filename) if payload.audio_filename else None,
         brand_organic_toggle=payload.brand_organic_toggle,
         brand_content_toggle=payload.brand_content_toggle,
