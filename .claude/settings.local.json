@@ -9,7 +9,10 @@
       "Bash(python -m py_compile models.py)",
       "Bash(python -m py_compile schemas.py)",
       "Bash(python -m py_compile services/__init__.py)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:8000/auth/login\" -L --max-redirs 0)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:8000/auth/login\" -L --max-redirs 0)",
+      "Bash(curl:*)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(p\\) for p in d['paths'] if 'auth' in p or 'account' in p]\")",
+      "Bash(docker exec tiktok_upload_scheduler-backend-1:*)"
     ]
   }
 }

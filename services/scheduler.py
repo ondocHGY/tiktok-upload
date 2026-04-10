@@ -52,17 +52,50 @@ def remove_upload_job(schedule_id: int) -> None:
 
 
 async def refresh_all_tokens() -> None:
-    """Refresh access tokens for all connected TikTok accounts."""
-    from services.tiktok_auth import ensure_valid_token
+    """Force-refresh access tokens for all connected TikTok accounts.
+
+    Unlike ``ensure_valid_token`` (which only refreshes when the current token
+    is already near expiry), this job unconditionally rotates every account's
+    access_token / refresh_token on its schedule, so tokens never get close to
+    expiry unnoticed.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    from services.tiktok_auth import refresh_access_token
 
     async with async_session() as db:
         result = await db.execute(select(TikTokAccount))
         accounts = result.scalars().all()
         for account in accounts:
+            now = datetime.now(timezone.utc)
+            if account.refresh_expires_at and account.refresh_expires_at.replace(
+                tzinfo=timezone.utc
+            ) <= now:
+                logger.warning(
+                    "Skipping account_id=%s: refresh_token expired, re-auth required",
+                    account.id,
+                )
+                continue
             try:
-                await ensure_valid_token(account, db)
-                logger.info("Token refreshed for account_id=%s", account.id)
+                data = await refresh_access_token(account.refresh_token)
+                account.access_token = data["access_token"]
+                if data.get("refresh_token"):
+                    account.refresh_token = data["refresh_token"]
+                account.token_expires_at = now + timedelta(seconds=data["expires_in"])
+                if data.get("refresh_expires_in"):
+                    account.refresh_expires_at = now + timedelta(
+                        seconds=data["refresh_expires_in"]
+                    )
+                db.add(account)
+                await db.commit()
+                await db.refresh(account)
+                logger.info(
+                    "Token refreshed for account_id=%s (new expiry=%s)",
+                    account.id,
+                    account.token_expires_at,
+                )
             except Exception:
+                await db.rollback()
                 logger.exception("Failed to refresh token for account_id=%s", account.id)
 
 
